@@ -18,17 +18,34 @@ public class App {
         String startPeriod = "2019-01-01 00:00:00";
         String stopPeriod = "2019-12-31 23:59:59";
 
-        String fileJson = "json/pulse.json";
+        String fileJson = "json/1.json";
         JSONArray jsonArray = readJSONArray(fileJson);
         LOG.info("{}", jsonArray);
 
         Graph graph = new Graph();
-        String graphSvg = graph.addGraph(
+
+        graph.addGraph(
                 "pulse",
                 startPeriod,
                 stopPeriod,
                 jsonArray,
                 false);
+
+        graph.addGraph(
+                "pulse",
+                startPeriod,
+                stopPeriod,
+                jsonArray,
+                false);
+
+        graph.addGraph(
+                "pulse",
+                startPeriod,
+                stopPeriod,
+                jsonArray,
+                false);
+
+        String graphSvg = graph.get();
 
         FileUtils fileUtils = new FileUtils();
         fileUtils.writeFile("Graph.html",

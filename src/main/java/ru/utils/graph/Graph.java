@@ -20,15 +20,18 @@ public class Graph {
     private final NumberFormat decimalFormat = NumberFormat.getInstance();
     private final DateFormat datetimeFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
     private final DateFormat sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    private final DateFormat sdf1 = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS");
-    private final DateFormat sdf2 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+    private final DateFormat sdf1 = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    private final DateFormat sdf2 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
     private final DateFormat sdf3 = new SimpleDateFormat("yyyyMMddHHmmss");
-    private final DateFormat sdf4 = new SimpleDateFormat("HH:mm:ss.SSS");
-    private final DateFormat sdf5 = new SimpleDateFormat("yyyyMMdd");
+    private final DateFormat sdf4 = new SimpleDateFormat("HH:mm:ss");
+    private final DateFormat sdf5 = new SimpleDateFormat("HH:mm");
+    private final DateFormat sdf6 = new SimpleDateFormat("yyyyMMdd");
+
+    private int graphNum = 0;
+    private StringBuilder sbResult = new StringBuilder();
 
     public Graph() {
     }
-
 
     /**
      * Линейный график
@@ -39,6 +42,8 @@ public class Graph {
             String stopPeriodStr,
             JSONArray jsonArrayData,
             boolean printMetrics) {
+
+        final String[] colors = {"#009f00", "#00009f", "#9f0000", "#9f009f"};
 
         long startPeriod;
         long stopPeriod;
@@ -92,23 +97,22 @@ public class Graph {
         int metricCount = metricsList.get(0).getValueSize();
 
         int xSize = Math.max(10000, metricsList.size() - 1);
-        int ySize = (int) (xSize / 2.8);
-        int xStart = xSize / 30;
-        int yStart = xSize / 20;
-        int xMax = xSize + xStart;
-        int yMax = ySize + yStart;
+        int ySize = (int) (xSize / 6);
         int xMarginRight = xSize / 300;
-        int yMarginBottom = xSize / 11;
+        int yMarginTop = xSize / 15;
         int xText = xSize / 500;
         int yText = xSize / 400;
         int fontSize = xSize / 120;
         int fontSizeX = xSize / 156;
-        int fontAxisSize = xSize / 110;
+        int xStart = xSize / 20;
+        int yStart = (graphNum == 0 ? yMarginTop : graphNum * ySize);
+        int xMax = xSize + xStart;
+        int yMax = ySize + yStart;
         int lineSize = Math.max(1, xSize / 5000);
         String background = "#f0f0f0"; //"#dfdfdf";
 
         // максимальное/минимальное значение Y и X
-        long startTime = 999999999999999999L;
+        long xValueMin = 999999999999999999L;
         long xValueMax = 0L;
         double yValueMin = 999999999;
         double yValueMax = 0.00;
@@ -117,33 +121,31 @@ public class Graph {
                 yValueMax = Math.max(yValueMax, metricsList.get(i).getIntValue(m));
                 yValueMin = Math.min(yValueMin, metricsList.get(i).getIntValue(m));
             }
-            startTime = Math.min(startTime, metricsList.get(i).getTime());
+            xValueMin = Math.min(xValueMin, metricsList.get(i).getTime());
             xValueMax = Math.max(xValueMax, metricsList.get(i).getTime());
         }
-        LOG.info("Min X: {}, Max X: {}, Min Y: {}, Max Y: {}",
-                sdf0.format(startTime),
+        LOG.info("Min X: {}, Max X: {}, ({}), Min Y: {}, Max Y: {}",
+                sdf0.format(xValueMin),
                 sdf0.format(xValueMax),
+                xValueMax - xValueMin,
                 yValueMin,
                 yValueMax);
-        xValueMax = xValueMax - startTime;
-//        yValueMax = yValueMax - yValueMin; // ToDo
+/*
+"\t\t\t\t<style type=\"text/css\">\n" +
+"\t\t\t\t\t.title-text {fill: #000; font-size: " + fontSize + "px; text-anchor: middle;}\n" +
+"\t\t\t\t\t.title-vertical {writing-mode: tb;}\n" +
+"\t\t\t\t</style>\t \n" +
+*/
 
-        StringBuilder sbResult = new StringBuilder("<!--" + title + "-->\n" +
-                "\t\t\t<svg viewBox=\"0 0 " + (xMax + xMarginRight) + " " + (yMax + yMarginBottom) + "\" class=\"chart\">\n" +
-                "\t\t\t\t<text " +
-                "font-size=\"" + (fontSize * 2) + "\" " +
-                "x=\"" + (xSize / 2 - (title.length() * xText) / 2) + "\" " +
-                "y=\"" + (yStart - fontSize * 2) + "\">" +
-                "" + title + "</text>\n" +
+        sbResult.append("<!--" + title + "-->\n" +
                 "<!-- Область графика -->\n" +
                 "\t\t\t\t<rect " +
                 "stroke=\"#0f0f0f\" " +
                 "fill=\"" + background + "\" " +
                 "x=\"" + xStart + "\" " +
-                "y=\"" + yStart + "\" " +
+                "y=\"" + yStart +"\" " +
                 "width=\"" + xSize + "\" " +
-                "height=\"" + ySize + "\"/>\n" +
-                "<!-- Описание -->\n");
+                "height=\"" + ySize + "\"/>\n");
 
         // описание графиков
         double yCur = fontSize / 1.5;
@@ -157,101 +159,125 @@ public class Graph {
         }
 */
 
+        boolean yStartFrom0 = false;
         // ось Y
         sbResult.append("<!-- Ось Y -->\n");
+        if (yStartFrom0) { yValueMin = 0L; } // начальное значение по оси Y = 0 или минимальному значению из списка
+        yValueMin = (int) yValueMin;
         if (yValueMax > 1) {
-            yValueMax = (int) (Math.ceil(yValueMax / 5.00) * 5); // максимальное значение на графике - ближайшее большее кратное 5
+            yValueMax = (int) (Math.ceil(yValueMax / 1.00) * 1);
         }
         int kfY = 40;
-        double yScale = Math.max(Math.min(kfY, yValueMax), 10);
-        if (yValueMax > 10) {
-            while (yValueMax % yScale != 0) {
-                yScale--;
+        double yValueRange = yValueMax - yValueMin;
+        double yScale = Math.max(Math.min(kfY, yValueRange), 10);
+        if (yValueRange > 10) {
+            while (true) {
+                yScale = Math.max(Math.min(kfY, yValueRange), 10);
+                while (yValueRange % yScale != 0) {
+                    yScale--;
+                }
+                if (yScale == yValueRange || yScale > 10){
+                    break;
+                } else {
+                    yValueMax++;
+                    yValueRange = yValueMax - yValueMin;
+                }
+//                LOG.info("{}: {} {}, {}", multiRunService.getName(), yValueMin, yValueMax, yScale);
             }
         }
-        double yRatio = ySize / (yValueMax * 1.00);
-        double yRatioValue = yValueMax / (yScale * 1.00);
+        double yRatio = ySize / (yValueRange * 1.00);
+        double yRatioValue = yValueRange / (yScale * 1.00);
         double yStep = ySize / (yScale * 1.00);
-        double yValue = 0.00;
+        double yValue = yValueMin;
         yCur = yMax;
-        double yValueMem = yValue;
 //        LOG.info("ySize:{}; yStart: {}; yScale:{}; yRatio:{}; yRatioValue:{}; yStep:{}; yCur:{}", ySize, yStart, yScale, yRatio, yRatioValue, yStep, yCur);
-
-        while (yCur > (yStart + yStep / 2)) {
-            yCur = yCur - yStep;
-            yValue = yValue + yRatioValue;
+        while (yValue <= yValueMax) {
             sbResult.append("\t\t\t\t<polyline " +
                     "fill=\"none\" " +
                     "stroke=\"#a0a0a0\" " +
                     "stroke-dasharray=\"" + xText + "\" " +
                     "stroke-width=\"" + lineSize + "\" " +
                     "points=\"" + xStart + "," + yCur + "  " + xMax + "," + yCur + "\"/>\n");
-            if (yValueMem != yValue) {
-                sbResult.append("\t\t\t\t<text " +
-                        "font-size=\"" + fontSize + "\" " +
-                        "x=\"0\" " +
-                        "y=\"" + (yCur + yText) + "\">" +
-                        decimalFormat.format(yValue) + "</text>\n");
-            }
-            yValueMem = yValue;
+            sbResult.append("\t\t\t\t<text " +
+                    "font-size=\"" + fontSize + "\" " +
+                    "x=\"" + (xStart / 1.5) + "\" " +
+                    "y=\"" + (yCur + yText) + "\">" +
+                    decimalFormat.format(yValue) + "</text>\n");
+            yCur = yCur - yStep;
+            yValue = yValue + yRatioValue;
         }
+        sbResult.append("<!-- Название графика -->\n")
+                .append("\t\t\t\t<text " +
+                "font-size=\"" + (fontSize*2) + "\" " +
+                "writing-mode=\"tb\" " +
+                "x=\"" + (fontSizeX) + "\" " +
+                "y=\"" + ((yMax - yStart)/2) + "\">" +
+                "" + title + "</text>\n");
 
+//<text x="100" y="1500" class="cota-text cota-vertical">TEXT TEXT TEXT TEXT TEXT TEXT TEXT</text>
         // ось X
+        int xAccuracy = 60000;
         sbResult.append("<!-- Ось X -->\n");
-        xValueMax = (long) (Math.ceil(xValueMax / 60000.00) * 60000); // максимальное значение на графике - ближайшее большее кратное 1 мин
+        long xValueRange = xValueMax - xValueMin;
+        double xScale;
         int kfX = 60;
-        double xScale = Math.min(kfX, xValueMax);
-        while (xValueMax % xScale != 0) {
-            xScale--;
+        while (true) {
+            xScale = Math.min(kfX, xValueRange);
+            while ((xValueRange / xScale) % xAccuracy != 0) {
+                xScale--;
+            }
+            if (xScale == xValueRange/xAccuracy || xScale > 20){
+                break;
+            } else {
+                xValueMax = xValueMax + xAccuracy;
+                xValueRange = xValueMax - xValueMin;
+            }
+//            LOG.info("{}: {} {}, {}", multiRunService.getName(), xValueMin, xValueMax, xScale);
         }
-        xScale = Math.min(xScale, metricsList.size() - 1);
-        double xRatio = xSize / (xValueMax * 1.00);
-        double xRatioValue = xValueMax / xScale;
+        double xRatio = xSize / (xValueRange * 1.00);
+        double xRatioValue = xValueRange / xScale;
         double xStep = xSize / xScale;
         double xCur = xStart;
-        long xValue = startTime;
-        LOG.info("xSize:{}; xStart: {}; xScale:{}; xRatio:{}; xRatioValue:{}; xStep:{}, xValueMax: {}",
-                xSize,
-                xStart,
-                xScale,
-                xRatio,
-                xRatioValue,
-                xStep,
-                sdf0.format(xValueMax));
-
+        long xValue = xValueMin;
+//        LOG.info("xSize:{}; xStart: {}; xScale:{}; xRatio:{}; xRatioValue:{}; xStep:{}", xSize, xStart, xScale, xRatio, xRatioValue, xStep);
         long xValueMem = 0;
-        while ((int) xCur <= xMax) {
+        if (xStep > 0) {
+            while (xValue <= xValueMax) {
 //            LOG.info("xMax: {}, xCur: {}", xMax, xCur);
-            if (xCur > xStart) {
-                sbResult.append("\t\t\t\t<polyline " +
-                        "fill=\"none\" " +
-                        "stroke=\"#a0a0a0\" " +
-                        "stroke-dasharray=\"" + yText + "\" " +
-                        "stroke-width=\"" + lineSize + "\" " +
-                        "points=\"" + xCur + "," + yStart + "  " + xCur + "," + yMax + "\"/>\n");
+                if (xCur > xStart) {
+                    sbResult.append("\t\t\t\t<polyline " +
+                            "fill=\"none\" " +
+                            "stroke=\"#a0a0a0\" " +
+                            "stroke-dasharray=\"" + yText + "\" " +
+                            "stroke-width=\"" + lineSize + "\" " +
+                            "points=\"" + xCur + "," + yStart + "  " + xCur + "," + yMax + "\"/>\n");
+                }
+                if (graphNum == 0) {
+                    sbResult.append("\t\t\t\t<text font-size=\"");
+                    if (!sdf6.format(xValueMem).equals(sdf6.format(xValue))) { // шрифт для полной даты
+                        sbResult.append(fontSizeX);
+                    } else {
+                        sbResult.append(fontSizeX + fontSizeX / 10);
+                    }
+                    sbResult.append("\" " +
+                            "font-family=\"Courier New\" " +
+                            "letter-spacing=\"0\" " + // 0.5
+                            "writing-mode=\"tb\" " +
+                            "x=\"" + xCur + "\" " +
+//                        "y=\"" + (yMax + yText) + "\">");
+                            "y=\"" + yText + "\">");
+                    if (!sdf6.format(xValueMem).equals(sdf6.format(xValue))) { // полную даты выводим 1 раз
+                        sbResult.append(sdf2.format(xValue)).append("</text>\n");
+                        xValueMem = xValue;
+                    } else {
+                        sbResult.append(sdf5.format(xValue)).append("</text>\n");
+                    }
+                }
+                xCur = xCur + xStep;
+                xValue = xValue + (long) xRatioValue;
             }
-            sbResult.append("\t\t\t\t<text " +
-                    "font-size=\"");
-            if (!sdf5.format(xValueMem).equals(sdf5.format(xValue))) { // шрифт для полной даты
-                sbResult.append(fontSizeX);
-            } else {
-                sbResult.append(fontSizeX + fontSizeX / 10);
-            }
-            sbResult.append("\" " +
-                    "font-family=\"Courier New\" " +
-                    "letter-spacing=\"0\" " + // 0.5
-                    "writing-mode=\"tb\" " +
-                    "x=\"" + xCur + "\" " +
-                    "y=\"" + (yMax + yText) + "\">");
-            if (!sdf5.format(xValueMem).equals(sdf5.format(xValue))) { // полную даты выводим 1 раз
-                sbResult.append(sdf1.format(xValue)).append("</text>\n");
-                xValueMem = xValue;
-            } else {
-                sbResult.append(sdf4.format(xValue)).append("</text>\n");
-            }
-            xCur = xCur + xStep;
-            xValue = xValue + (long) xRatioValue;
         }
+
 
         // рисуем график
         xCur = xStart;
@@ -260,22 +286,23 @@ public class Graph {
 
         StringBuilder[] sbGraph = new StringBuilder[metricCount]; // графики
         for (int m = 0; m < metricCount; m++) { // перебираем метрики для отображения
-            String curColor = "#10ff10"; // ToDo
+            String curColor = colors[m];
             sbGraph[m] = new StringBuilder();
             sbGraph[m].append("<!-- График" + (m + 1) + " -->\n" +
                     "\t\t\t\t<polyline " +
                     "fill=\"none\" " +
                     "stroke=\"" + curColor + "\" " +
                     "stroke-width=\"" + (lineSize * 2) + "\" " +
-                    "points=\"" + xCur + "," + yMax + " \n");
+                    "points=\"\n");
+//                    "points=\"" + xCur + "," + yMax + " \n");
         }
 
         for (int i = 1; i < metricsList.size(); i++) {
-            xCur = (metricsList.get(i).getTime() - startTime) * xRatio + xStart;
+            xCur = (metricsList.get(i).getTime() - xValueMin) * xRatio + xStart;
             List<Double> yPrevList = new ArrayList<>();
             for (int m = 0; m < metricCount; m++) { // перебираем метрики для отображения
-                String curColor = "#10ff10"; // ToDo
-                double y = yMax - Math.round(metricsList.get(i).getValue(m) * yRatio);
+                String curColor = colors[m];
+                double y = yMax - Math.round((metricsList.get(i).getValue(m) - yValueMin) * yRatio);
                 // график
                 sbGraph[m].append(xCur + "," + y + " \n");
                 // значение отличается от предыдущего
@@ -318,8 +345,13 @@ public class Graph {
         sbResult.append(sbSignature.toString());
         sbResult.append(sbSignatureTitle.toString());
 
-        sbResult.append("\t\t\t</svg>\n");
+        graphNum++;
         return sbResult.toString();
+    }
+
+    public String get(){
+//        "\t\t\t<svg viewBox=\"0 0 " + (xMax + xMarginRight) + " " + (yMax + yText) + "\" class=\"chart\">\n" +
+        return "\t\t\t<svg class=\"chart\">\n" + sbResult.toString() + "</svg>";
     }
 
 }
