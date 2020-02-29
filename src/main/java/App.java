@@ -15,12 +15,18 @@ public class App {
 
     public static void main(String[] args) {
 
-        String startPeriod = "2019-01-01 00:00:00";
-        String stopPeriod = "2019-12-31 23:59:59";
+        String startPeriod = "2019-01-01 00:00";
+        String stopPeriod = "2019-12-31 23:59";
+        startPeriod = "";
+        stopPeriod = "";
 
         String fileJson = "json/1.json";
-        JSONArray jsonArray = readJSONArray(fileJson);
-        LOG.info("{}", jsonArray);
+        JSONArray jsonArrayPulse = readJSONArray(fileJson);
+        LOG.info("{}", jsonArrayPulse);
+
+        fileJson = "json/2.json";
+        JSONArray jsonArrayArterialPressure = readJSONArray(fileJson);
+        LOG.info("{}", jsonArrayPulse);
 
         Graph graph = new Graph();
         FileUtils fileUtils = new FileUtils();
@@ -28,40 +34,38 @@ public class App {
         String graphSvg;
 
         graphSvg = graph.addGraph(
+                jsonArrayPulse,
                 "pulse",
                 startPeriod,
                 stopPeriod,
-                jsonArray,
                 false);
         fileUtils.writeFile("Graph1.svg", graphSvg);
 
         graphSvg = graph.addGraph(
-                "pulse",
+                jsonArrayArterialPressure,
+                "ArterialPressure",
                 startPeriod,
                 stopPeriod,
-                jsonArray,
-                40,
-                180,
                 false);
         fileUtils.writeFile("Graph2.svg", graphSvg);
 
-        graphSvg = graph.addGraph(
+
+        graph.addGraph(
+                jsonArrayPulse,
                 "pulse",
                 startPeriod,
                 stopPeriod,
-                jsonArray,
                 40,
                 180,
                 false);
-        fileUtils.writeFile("Graph3.svg", graphSvg);
 
-        graphSvg = graph.addGraph(
-                "pulse",
+        graph.addGraph(
+                jsonArrayArterialPressure,
+                "ArterialPressure",
                 startPeriod,
                 stopPeriod,
-                jsonArray,
-                40,
-                180,
+                50,
+                200,
                 false);
 
 //        graphSvg = graph.getSvg();

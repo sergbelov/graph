@@ -13,12 +13,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 public class Graph {
     private static final Logger LOG = LogManager.getLogger(Graph.class);
     private final NumberFormat decimalFormat = NumberFormat.getInstance();
     private final DateFormat datetimeFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+    private final DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     private final DateFormat sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private final DateFormat sdf1 = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
     private final DateFormat sdf2 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
@@ -29,6 +31,7 @@ public class Graph {
 
     private int graphNum = 0;
     private StringBuilder sbGraphResult = new StringBuilder();
+    private List<String> metricsNameList = new ArrayList<>();
 
     private final int xSize = 10000;
     private final int ySize = (int) (xSize / 6);
@@ -49,15 +52,53 @@ public class Graph {
     }
 
     /**
+     * Добавляем элемент jsonObject в metricsList
+     * @param jsonObject
+     */
+    private DateTimeValue getElementFromJSONObject(JSONObject jsonObject) {
+        long date = 0L;
+        Iterator<?> keys = jsonObject.sortedKeys();
+        List<Number> dataList = new ArrayList<>();
+        while (keys.hasNext()) {
+            String key = (String) keys.next();
+            if (key.equals("date")) {
+                try {
+                    date = sdf0.parse(jsonObject.getString("date")).getTime();
+                } catch (Exception e) {
+                    LOG.error("Ошибка в формате даты");
+                }
+            } else {
+                int index = -1;
+                if (metricsNameList.size() > 0) {
+                    index = metricsNameList.indexOf(key);
+                }
+                if (index == -1) {
+                    metricsNameList.add(key);
+                    index = metricsNameList.size() - 1;
+                }
+                try {
+                    dataList.add(jsonObject.getDouble(key));
+                } catch (Exception e) {
+                    LOG.error("Ошибка в формате json\n", e);
+                }
+            }
+        }
+        return new DateTimeValue(date, dataList);
+    }
+
+    /**
      * Данные из JSONArray
+     *
      * @param jsonArrayData
      * @return
      */
-    private List<DateTimeValue> jsonToList(JSONArray jsonArrayData){
+    private List<DateTimeValue> jsonToList(JSONArray jsonArrayData) {
         List<DateTimeValue> metricsList = new ArrayList<>();
         for (int i = 0; i < jsonArrayData.length(); i++) {
             try {
                 JSONObject jsonObject = jsonArrayData.getJSONObject(i);
+                metricsList.add(getElementFromJSONObject(jsonObject));
+/*
                 if (jsonObject.has("date")) {
                     long date = 0L;
                     try {
@@ -76,6 +117,7 @@ public class Graph {
                 } else {
                     LOG.error("Ошибка в формате данных {}", jsonObject);
                 }
+*/
             } catch (JSONException e) {
                 LOG.error("Ошибка в формате данных");
             }
@@ -83,47 +125,78 @@ public class Graph {
         return metricsList;
     }
 
+    /**
+     * @param jsonArrayData
+     * @param title
+     * @param printMetrics
+     * @return
+     */
     public String addGraph(
-            String title,
-            String startPeriodStr,
-            String stopPeriodStr,
             JSONArray jsonArrayData,
+            String title,
             boolean printMetrics) {
-        return addGraph(title,
-                startPeriodStr,
-                stopPeriodStr,
-                jsonArrayData,
+        return addGraph(jsonArrayData,
+                title,
+                "",
+                "",
                 null,
                 null,
                 printMetrics);
     }
+
+    /**
+     * @param jsonArrayData
+     * @param title
+     * @param startPeriodStr
+     * @param stopPeriodStr
+     * @param printMetrics
+     * @return
+     */
+    public String addGraph(
+            JSONArray jsonArrayData,
+            String title,
+            String startPeriodStr,
+            String stopPeriodStr,
+            boolean printMetrics) {
+        return addGraph(jsonArrayData,
+                title,
+                startPeriodStr,
+                stopPeriodStr,
+                null,
+                null,
+                printMetrics);
+    }
+
     /**
      * Линейный график
      */
     public String addGraph(
+            JSONArray jsonArrayData,
             String title,
             String startPeriodStr,
             String stopPeriodStr,
-            JSONArray jsonArrayData,
             Integer yMinConst,
             Integer yMaxConst,
             boolean printMetrics) {
 
-        long startPeriod;
-        long stopPeriod;
+        long startPeriod = 0L;
+        long stopPeriod = 0L;
 
-        try {
-            startPeriod = sdf0.parse(startPeriodStr).getTime();
-        } catch (ParseException e) {
-            LOG.error("Ошибка в формате даты: {}", startPeriodStr);
-            return "";
+        if (!startPeriodStr.isEmpty()) {
+            try {
+                startPeriod = sdf.parse(startPeriodStr).getTime();
+            } catch (ParseException e) {
+                LOG.error("Ошибка в формате даты: {}", startPeriodStr);
+                return "";
+            }
         }
-
-        try {
-            stopPeriod = sdf0.parse(stopPeriodStr).getTime();
-        } catch (ParseException e) {
-            LOG.error("Ошибка в формате даты: {}", stopPeriodStr);
-            return "";
+        if (!stopPeriodStr.isEmpty()) {
+            try {
+                stopPeriod = sdf.parse(stopPeriodStr).getTime();
+            } catch (ParseException e) {
+                LOG.error("Ошибка в формате даты: {}", stopPeriodStr);
+                return "";
+            }
         }
 
         LOG.info("Формирование графика {} ({} - {})",
@@ -159,9 +232,22 @@ public class Graph {
                 yValueMin,
                 yValueMax);
 
-        if (xValueMax == 0 && yValueMax == 0){ return ""; }
-        if (yMinConst != null) { yValueMin = yMinConst;}
-        if (yMaxConst != null) { yValueMax = yMaxConst;}
+        if (xValueMax == 0 || yValueMax == 0) {
+            return "";
+        }
+        if (yMinConst != null) {
+            yValueMin = yMinConst;
+        }
+        if (yMaxConst != null) {
+            yValueMax = yMaxConst;
+        }
+
+        if (startPeriod > 0) {
+            xValueMin = startPeriod;
+        }
+        if (stopPeriod > 0) {
+            xValueMax = stopPeriod;
+        }
 /*
 "\t\t\t\t<style type=\"text/css\">\n" +
 "\t\t\t\t\t.title-text {fill: #000; font-size: " + fontSize + "px; text-anchor: middle;}\n" +
@@ -175,7 +261,7 @@ public class Graph {
                 "stroke=\"#0f0f0f\" " +
                 "fill=\"" + background + "\" " +
                 "x=\"" + xStart + "\" " +
-                "y=\"" + yStart +"\" " +
+                "y=\"" + yStart + "\" " +
                 "width=\"" + xSize + "\" " +
                 "height=\"" + ySize + "\"/>\n");
 
@@ -194,7 +280,9 @@ public class Graph {
         boolean yStartFrom0 = false;
         // ось Y
         sbGraphResult.append("<!-- Ось Y -->\n");
-        if (yStartFrom0) { yValueMin = 0L; } // начальное значение по оси Y = 0 или минимальному значению из списка
+        if (yStartFrom0) {
+            yValueMin = 0L;
+        } // начальное значение по оси Y = 0 или минимальному значению из списка
         yValueMin = (int) yValueMin;
         if (yValueMax > 1) {
             yValueMax = (int) (Math.ceil(yValueMax / 1.00) * 1);
@@ -208,7 +296,7 @@ public class Graph {
                 while (yValueRange % yScale != 0) {
                     yScale--;
                 }
-                if (yScale == yValueRange || yScale > 10){
+                if (yScale == yValueRange || yScale > 10) {
                     break;
                 } else {
                     yValueMax++;
@@ -222,6 +310,7 @@ public class Graph {
         double yStep = ySize / (yScale * 1.00);
         double yValue = yValueMin;
         yCur = yMax;
+        double yPrev = yCur + fontSize / 1.4 + 1;
 //        LOG.info("ySize:{}; yStart: {}; yScale:{}; yRatio:{}; yRatioValue:{}; yStep:{}; yCur:{}", ySize, yStart, yScale, yRatio, yRatioValue, yStep, yCur);
         while (yValue <= yValueMax) {
             sbGraphResult.append("\t\t\t\t<polyline " +
@@ -230,22 +319,26 @@ public class Graph {
                     "stroke-dasharray=\"" + xText + "\" " +
                     "stroke-width=\"" + lineSize + "\" " +
                     "points=\"" + xStart + "," + yCur + "  " + xMax + "," + yCur + "\"/>\n");
-            sbGraphResult.append("\t\t\t\t<text " +
-                    "font-size=\"" + fontSize + "\" " +
-                    "x=\"" + (xStart / 1.5) + "\" " +
-                    "y=\"" + (yCur + yText) + "\">" +
-                    decimalFormat.format(yValue) + "</text>\n");
+//            if(1 == 1) {
+            if (yCur < (yPrev - fontSize / 1.4)) {
+                sbGraphResult.append("\t\t\t\t<text " +
+                        "font-size=\"" + fontSize + "\" " +
+                        "x=\"" + (xStart / 1.5) + "\" " +
+                        "y=\"" + (yCur + yText) + "\">" +
+                        decimalFormat.format(yValue) + "</text>\n");
+                yPrev = yCur;
+            }
             yCur = yCur - yStep;
             yValue = yValue + yRatioValue;
         }
         sbGraphResult.append("<!-- Название графика -->\n")
                 .append("\t\t\t\t<text " +
-                "font-size=\"" + (fontSize*2) + "\" " +
-                "writing-mode=\"tb\" " +
-                "x=\"" + (fontSizeX) + "\" " +
-                "y=\"" + yStart + "\">" +
+                        "font-size=\"" + (fontSize * 2) + "\" " +
+                        "writing-mode=\"tb\" " +
+                        "x=\"" + (fontSizeX) + "\" " +
+                        "y=\"" + yStart + "\">" +
 //                "y=\"" + ((yMax - yStart)/2) + "\">" +
-                "" + title + "</text>\n");
+                        "" + title + "</text>\n");
 
 //<text x="100" y="1500" class="cota-text cota-vertical">TEXT TEXT TEXT TEXT TEXT TEXT TEXT</text>
         // ось X
@@ -256,10 +349,10 @@ public class Graph {
         int kfX = 60;
         while (true) {
             xScale = Math.min(kfX, xValueRange);
-            while ((xValueRange / xScale) % xAccuracy != 0) {
+            while (xScale > 0 && (xValueRange / xScale) % xAccuracy != 0) {
                 xScale--;
             }
-            if (xScale == xValueRange/xAccuracy || xScale > 20){
+            if (xScale == xValueRange / xAccuracy || xScale > 20) {
                 break;
             } else {
                 xValueMax = xValueMax + xAccuracy;
@@ -287,14 +380,14 @@ public class Graph {
                 }
                 if (graphNum == 0) {
                     sbGraphResult.append("\t\t\t\t<text font-size=\"")
-                                .append((int) (fontSizeX * 1.35))
-                                .append("\" " +
-                            "font-family=\"Areal\" " +
-                            "letter-spacing=\"0\" " + // 0.5
-                            "writing-mode=\"tb\" " +
-                            "x=\"" + xCur + "\" " +
+                            .append((int) (fontSizeX * 1.35))
+                            .append("\" " +
+                                    "font-family=\"Areal\" " +
+                                    "letter-spacing=\"0\" " + // 0.5
+                                    "writing-mode=\"tb\" " +
+                                    "x=\"" + xCur + "\" " +
 //                        "y=\"" + (yMax + yText) + "\">");
-                            "y=\"" + yText + "\">");
+                                    "y=\"" + yText + "\">");
                     if (!sdf6.format(xValueMem).equals(sdf6.format(xValue))) { // полную даты выводим 1 раз
                         sbGraphResult.append(sdf2.format(xValue)).append("</text>\n");
                         xValueMem = xValue;
@@ -381,19 +474,20 @@ public class Graph {
 
     /**
      * Получить все графики
+     *
      * @return
      */
-    public String getSvg(){
+    public String getSvg() {
         return "\t\t\t<svg " +
-                "width=\"" + xMax +"\" " +
-                "height=\"" + (ySize * graphNum + yMarginTop) + "\" " +
+                "width=\"" + xMax + "\" " +
+                "height=\"" + (graphNum * (ySize + fontSize) + yMarginTop) + "\" " +
                 "xmlns=\"http://www.w3.org/2000/svg\" " +
                 "xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n" +
                 sbGraphResult.toString() +
                 "</svg>";
     }
 
-    public String getHtml(){
+    public String getHtml() {
         return "<html>\n" +
                 "\t<head>\n" +
                 "\t\t<meta charset=\"UTF-8\">\n" +
@@ -404,7 +498,7 @@ public class Graph {
                 "\t</head>\n" +
                 "\t<body>\n" +
                 "\t\t\t<div class=\"graph\">\n" +
-                "\t\t\t<svg viewBox=\"0 0 " + xMax + " " + (ySize * graphNum + yMarginTop) +" \" class=\"chart\">\n" +
+                "\t\t\t<svg viewBox=\"0 0 " + xMax + " " + (graphNum * (ySize + fontSize) + yMarginTop) + " \" class=\"chart\">\n" +
                 sbGraphResult.toString() +
                 "\t</body>\n" +
                 "</html>";
