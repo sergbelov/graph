@@ -23,58 +23,50 @@ public class App {
         LOG.info("{}", jsonArray);
 
         Graph graph = new Graph();
-
-        graph.addGraph(
-                "pulse",
-                startPeriod,
-                stopPeriod,
-                jsonArray,
-                false);
-
-        graph.addGraph(
-                "pulse",
-                startPeriod,
-                stopPeriod,
-                jsonArray,
-                false);
-
-        graph.addGraph(
-                "pulse",
-                startPeriod,
-                stopPeriod,
-                jsonArray,
-                false);
-
-        String graphSvg = graph.get();
-
         FileUtils fileUtils = new FileUtils();
-        fileUtils.writeFile("Graph.html",
-                "<html>\n" +
-                        "\t<head>\n" +
-                        "\t\t<meta charset=\"UTF-8\">\n" +
-                        "\t\t<style>\n" +
-                        "\t\t\tbody, html { width:100%; height:100%; margin:0; background:#fdfdfd}\n" +
-                        "\n" +
-                        "\t\t\t.graph { width:95%; border-radius:5px; box-shadow: 0 0 1px 1px rgba(0,0,0,0.5); margin:50px auto; border:1px; solid #ccc; background:#fff}\n" +
-                        "\n" +
-                        "\t\t\ttable { border: solid 1px; border-collapse: collapse;}\n" +
-                        "\t\t\tcaption {font-size: 10;}\n" +
-                        "\t\t\ttd { border: solid 1px;}\n" +
-                        "\t\t\tth { border: solid 1px; background: #f0f0f0; font-size: 12;}\n" +
-                        "\t\t\t.td_red { border: solid 1px; background-color: rgb(255, 192, 192);}\n" +
-                        "\t\t\t.td_green { border: solid 1px; background-color: rgb(192, 255, 192);}\n" +
-                        "\t\t\t.td_yellow { border: solid 1px; background-color: rgb(255, 255, 192);}\n" +
-                        "\t\t\ttable.scroll { border-spacing: 0; border: 1px solid black;}\n" +
-                        "\t\t\ttable.scroll tbody,\n" +
-                        "\t\t\ttable.scroll thead { display: block; }\n" +
-                        "\t\t\ttable.scroll tbody { height: 100px; overflow-y: auto; overflow-x: hidden;}\n" +
-                        "\t\t\ttbody td:last-child, thead th:last-child { border-right: none;}\n" +
-                        "\t\t</style>\n" +
-                        "\t</head>\n" +
-                        "\t<body>\n" +
-                        graphSvg +
-                        "\t</body>\n" +
-                        "</html>");
+
+        String graphSvg;
+
+        graphSvg = graph.addGraph(
+                "pulse",
+                startPeriod,
+                stopPeriod,
+                jsonArray,
+                false);
+        fileUtils.writeFile("Graph1.svg", graphSvg);
+
+        graphSvg = graph.addGraph(
+                "pulse",
+                startPeriod,
+                stopPeriod,
+                jsonArray,
+                40,
+                180,
+                false);
+        fileUtils.writeFile("Graph2.svg", graphSvg);
+
+        graphSvg = graph.addGraph(
+                "pulse",
+                startPeriod,
+                stopPeriod,
+                jsonArray,
+                40,
+                180,
+                false);
+        fileUtils.writeFile("Graph3.svg", graphSvg);
+
+        graphSvg = graph.addGraph(
+                "pulse",
+                startPeriod,
+                stopPeriod,
+                jsonArray,
+                40,
+                180,
+                false);
+
+//        graphSvg = graph.getSvg();
+
+        fileUtils.writeFile("Graph.html", graph.getHtml());
     }
 
 

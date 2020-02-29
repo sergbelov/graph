@@ -28,45 +28,32 @@ public class Graph {
     private final DateFormat sdf6 = new SimpleDateFormat("yyyyMMdd");
 
     private int graphNum = 0;
-    private StringBuilder sbResult = new StringBuilder();
+    private StringBuilder sbGraphResult = new StringBuilder();
+
+    private final int xSize = 10000;
+    private final int ySize = (int) (xSize / 6);
+    private final int xText = xSize / 500;
+    private final int yText = xSize / 400;
+    private final int fontSize = xSize / 120;
+    private final int fontSizeX = xSize / 156;
+    private final int yMarginTop = xSize / 15;
+    private final int xMarginRight = xSize / 300;
+    private final int xStart = xSize / 20;
+    private final int xMax = xSize + xStart + xMarginRight;
+    private final int lineSize = Math.max(1, xSize / 5000);
+
+    private final String background = "#f0f0f0"; //"#dfdfdf";
+    private final String[] colors = {"#009f00", "#00009f", "#9f0000", "#9f009f"};
 
     public Graph() {
     }
 
     /**
-     * Линейный график
+     * Данные из JSONArray
+     * @param jsonArrayData
+     * @return
      */
-    public String addGraph(
-            String title,
-            String startPeriodStr,
-            String stopPeriodStr,
-            JSONArray jsonArrayData,
-            boolean printMetrics) {
-
-        final String[] colors = {"#009f00", "#00009f", "#9f0000", "#9f009f"};
-
-        long startPeriod;
-        long stopPeriod;
-
-        try {
-            startPeriod = sdf0.parse(startPeriodStr).getTime();
-        } catch (ParseException e) {
-            LOG.error("Ошибка в формате даты: {}", startPeriodStr);
-            return "";
-        }
-
-        try {
-            stopPeriod = sdf0.parse(stopPeriodStr).getTime();
-        } catch (ParseException e) {
-            LOG.error("Ошибка в формате даты: {}", stopPeriodStr);
-            return "";
-        }
-
-        LOG.info("Формирование графика {} ({} - {})",
-                title,
-                startPeriodStr,
-                startPeriodStr);
-
+    private List<DateTimeValue> jsonToList(JSONArray jsonArrayData){
         List<DateTimeValue> metricsList = new ArrayList<>();
         for (int i = 0; i < jsonArrayData.length(); i++) {
             try {
@@ -93,23 +80,64 @@ public class Graph {
                 LOG.error("Ошибка в формате данных");
             }
         }
+        return metricsList;
+    }
 
+    public String addGraph(
+            String title,
+            String startPeriodStr,
+            String stopPeriodStr,
+            JSONArray jsonArrayData,
+            boolean printMetrics) {
+        return addGraph(title,
+                startPeriodStr,
+                stopPeriodStr,
+                jsonArrayData,
+                null,
+                null,
+                printMetrics);
+    }
+    /**
+     * Линейный график
+     */
+    public String addGraph(
+            String title,
+            String startPeriodStr,
+            String stopPeriodStr,
+            JSONArray jsonArrayData,
+            Integer yMinConst,
+            Integer yMaxConst,
+            boolean printMetrics) {
+
+        long startPeriod;
+        long stopPeriod;
+
+        try {
+            startPeriod = sdf0.parse(startPeriodStr).getTime();
+        } catch (ParseException e) {
+            LOG.error("Ошибка в формате даты: {}", startPeriodStr);
+            return "";
+        }
+
+        try {
+            stopPeriod = sdf0.parse(stopPeriodStr).getTime();
+        } catch (ParseException e) {
+            LOG.error("Ошибка в формате даты: {}", stopPeriodStr);
+            return "";
+        }
+
+        LOG.info("Формирование графика {} ({} - {})",
+                title,
+                startPeriodStr,
+                startPeriodStr);
+
+        List<DateTimeValue> metricsList = jsonToList(jsonArrayData);
         int metricCount = metricsList.get(0).getValueSize();
 
-        int xSize = Math.max(10000, metricsList.size() - 1);
-        int ySize = (int) (xSize / 6);
-        int xMarginRight = xSize / 300;
-        int yMarginTop = xSize / 15;
-        int xText = xSize / 500;
-        int yText = xSize / 400;
-        int fontSize = xSize / 120;
-        int fontSizeX = xSize / 156;
-        int xStart = xSize / 20;
-        int yStart = (graphNum == 0 ? yMarginTop : graphNum * ySize);
-        int xMax = xSize + xStart;
+//        int xSize = Math.max(10000, metricsList.size() - 1);
+//        int ySize = (int) (xSize / 6);
+        int yStart = (graphNum == 0 ? yMarginTop : graphNum * (ySize + fontSize) + yMarginTop);
         int yMax = ySize + yStart;
-        int lineSize = Math.max(1, xSize / 5000);
-        String background = "#f0f0f0"; //"#dfdfdf";
 
         // максимальное/минимальное значение Y и X
         long xValueMin = 999999999999999999L;
@@ -130,6 +158,10 @@ public class Graph {
                 xValueMax - xValueMin,
                 yValueMin,
                 yValueMax);
+
+        if (xValueMax == 0 && yValueMax == 0){ return ""; }
+        if (yMinConst != null) { yValueMin = yMinConst;}
+        if (yMaxConst != null) { yValueMax = yMaxConst;}
 /*
 "\t\t\t\t<style type=\"text/css\">\n" +
 "\t\t\t\t\t.title-text {fill: #000; font-size: " + fontSize + "px; text-anchor: middle;}\n" +
@@ -137,7 +169,7 @@ public class Graph {
 "\t\t\t\t</style>\t \n" +
 */
 
-        sbResult.append("<!--" + title + "-->\n" +
+        sbGraphResult.append("<!--" + title + "-->\n" +
                 "<!-- Область графика -->\n" +
                 "\t\t\t\t<rect " +
                 "stroke=\"#0f0f0f\" " +
@@ -161,7 +193,7 @@ public class Graph {
 
         boolean yStartFrom0 = false;
         // ось Y
-        sbResult.append("<!-- Ось Y -->\n");
+        sbGraphResult.append("<!-- Ось Y -->\n");
         if (yStartFrom0) { yValueMin = 0L; } // начальное значение по оси Y = 0 или минимальному значению из списка
         yValueMin = (int) yValueMin;
         if (yValueMax > 1) {
@@ -192,13 +224,13 @@ public class Graph {
         yCur = yMax;
 //        LOG.info("ySize:{}; yStart: {}; yScale:{}; yRatio:{}; yRatioValue:{}; yStep:{}; yCur:{}", ySize, yStart, yScale, yRatio, yRatioValue, yStep, yCur);
         while (yValue <= yValueMax) {
-            sbResult.append("\t\t\t\t<polyline " +
+            sbGraphResult.append("\t\t\t\t<polyline " +
                     "fill=\"none\" " +
                     "stroke=\"#a0a0a0\" " +
                     "stroke-dasharray=\"" + xText + "\" " +
                     "stroke-width=\"" + lineSize + "\" " +
                     "points=\"" + xStart + "," + yCur + "  " + xMax + "," + yCur + "\"/>\n");
-            sbResult.append("\t\t\t\t<text " +
+            sbGraphResult.append("\t\t\t\t<text " +
                     "font-size=\"" + fontSize + "\" " +
                     "x=\"" + (xStart / 1.5) + "\" " +
                     "y=\"" + (yCur + yText) + "\">" +
@@ -206,18 +238,19 @@ public class Graph {
             yCur = yCur - yStep;
             yValue = yValue + yRatioValue;
         }
-        sbResult.append("<!-- Название графика -->\n")
+        sbGraphResult.append("<!-- Название графика -->\n")
                 .append("\t\t\t\t<text " +
                 "font-size=\"" + (fontSize*2) + "\" " +
                 "writing-mode=\"tb\" " +
                 "x=\"" + (fontSizeX) + "\" " +
-                "y=\"" + ((yMax - yStart)/2) + "\">" +
+                "y=\"" + yStart + "\">" +
+//                "y=\"" + ((yMax - yStart)/2) + "\">" +
                 "" + title + "</text>\n");
 
 //<text x="100" y="1500" class="cota-text cota-vertical">TEXT TEXT TEXT TEXT TEXT TEXT TEXT</text>
         // ось X
         int xAccuracy = 60000;
-        sbResult.append("<!-- Ось X -->\n");
+        sbGraphResult.append("<!-- Ось X -->\n");
         long xValueRange = xValueMax - xValueMin;
         double xScale;
         int kfX = 60;
@@ -245,7 +278,7 @@ public class Graph {
             while (xValue <= xValueMax) {
 //            LOG.info("xMax: {}, xCur: {}", xMax, xCur);
                 if (xCur > xStart) {
-                    sbResult.append("\t\t\t\t<polyline " +
+                    sbGraphResult.append("\t\t\t\t<polyline " +
                             "fill=\"none\" " +
                             "stroke=\"#a0a0a0\" " +
                             "stroke-dasharray=\"" + yText + "\" " +
@@ -253,24 +286,20 @@ public class Graph {
                             "points=\"" + xCur + "," + yStart + "  " + xCur + "," + yMax + "\"/>\n");
                 }
                 if (graphNum == 0) {
-                    sbResult.append("\t\t\t\t<text font-size=\"");
-                    if (!sdf6.format(xValueMem).equals(sdf6.format(xValue))) { // шрифт для полной даты
-                        sbResult.append(fontSizeX);
-                    } else {
-                        sbResult.append(fontSizeX + fontSizeX / 10);
-                    }
-                    sbResult.append("\" " +
-                            "font-family=\"Courier New\" " +
+                    sbGraphResult.append("\t\t\t\t<text font-size=\"")
+                                .append((int) (fontSizeX * 1.35))
+                                .append("\" " +
+                            "font-family=\"Areal\" " +
                             "letter-spacing=\"0\" " + // 0.5
                             "writing-mode=\"tb\" " +
                             "x=\"" + xCur + "\" " +
 //                        "y=\"" + (yMax + yText) + "\">");
                             "y=\"" + yText + "\">");
                     if (!sdf6.format(xValueMem).equals(sdf6.format(xValue))) { // полную даты выводим 1 раз
-                        sbResult.append(sdf2.format(xValue)).append("</text>\n");
+                        sbGraphResult.append(sdf2.format(xValue)).append("</text>\n");
                         xValueMem = xValue;
                     } else {
-                        sbResult.append(sdf5.format(xValue)).append("</text>\n");
+                        sbGraphResult.append(sdf5.format(xValue)).append("</text>\n");
                     }
                 }
                 xCur = xCur + xStep;
@@ -333,25 +362,51 @@ public class Graph {
                 sbSignatureTitle.append("<g> " +
                         "<circle stroke=\"" + curColor + "\" cx=\"" + xCur + "\" cy=\"" + y + "\" r=\"" + (lineSize * 5) + "\"/> " +
                         "<title>");
-                sbSignatureTitle.append("время: " + sdf1.format(metricsList.get(i).getTime()) + "; " +
+                sbSignatureTitle.append("время: " + sdf2.format(metricsList.get(i).getTime()) + "; " +
                         "значение: " + decimalFormat.format(metricsList.get(i).getValue(m)) + "</title> " +
                         "</g>\n");
             }
         }
         for (int i = 0; i < metricCount; i++) {
             sbGraph[i].append("\"/>\n");
-            sbResult.append(sbGraph[i].toString());
+            sbGraphResult.append(sbGraph[i].toString());
         }
-        sbResult.append(sbSignature.toString());
-        sbResult.append(sbSignatureTitle.toString());
+        sbGraphResult.append(sbSignature.toString());
+        sbGraphResult.append(sbSignatureTitle.toString());
 
         graphNum++;
-        return sbResult.toString();
+        return getSvg();
     }
 
-    public String get(){
-//        "\t\t\t<svg viewBox=\"0 0 " + (xMax + xMarginRight) + " " + (yMax + yText) + "\" class=\"chart\">\n" +
-        return "\t\t\t<svg class=\"chart\">\n" + sbResult.toString() + "</svg>";
+
+    /**
+     * Получить все графики
+     * @return
+     */
+    public String getSvg(){
+        return "\t\t\t<svg " +
+                "width=\"" + xMax +"\" " +
+                "height=\"" + (ySize * graphNum + yMarginTop) + "\" " +
+                "xmlns=\"http://www.w3.org/2000/svg\" " +
+                "xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n" +
+                sbGraphResult.toString() +
+                "</svg>";
     }
 
+    public String getHtml(){
+        return "<html>\n" +
+                "\t<head>\n" +
+                "\t\t<meta charset=\"UTF-8\">\n" +
+                "\t\t<style>\n" +
+                "\t\t\tbody, html { width:100%; height:100%; margin:0; background:#fdfdfd}\n" +
+                "\t\t\t.graph { width:95%; border-radius:5px; box-shadow: 0 0 1px 1px rgba(0,0,0,0.5); margin:50px auto; border:1px; solid #ccc; background:#fff}\n" +
+                "\t\t</style>\n" +
+                "\t</head>\n" +
+                "\t<body>\n" +
+                "\t\t\t<div class=\"graph\">\n" +
+                "\t\t\t<svg viewBox=\"0 0 " + xMax + " " + (ySize * graphNum + yMarginTop) +" \" class=\"chart\">\n" +
+                sbGraphResult.toString() +
+                "\t</body>\n" +
+                "</html>";
+    }
 }
