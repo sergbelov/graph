@@ -26,7 +26,7 @@ public class App {
 
         fileJson = "json/2.json";
         JSONArray jsonArrayArterialPressure = readJSONArray(fileJson);
-        LOG.info("{}", jsonArrayPulse);
+        LOG.info("{}", jsonArrayArterialPressure);
 
         Graph graph = new Graph();
         FileUtils fileUtils = new FileUtils();
