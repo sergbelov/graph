@@ -17,9 +17,10 @@ public class App {
 
         String startPeriod = "2019-01-01 00:00";
         String stopPeriod = "2019-12-31 23:59";
-        startPeriod = "2019-05-29 00:00";
+        startPeriod = "2019-06-12 00:00";
+        stopPeriod = "2019-06-19 00:00";
 //        startPeriod = "";
-        stopPeriod = "";
+//        stopPeriod = "";
 
         String fileJson = "json/1.json";
         JSONArray jsonArrayPulse = readJSONArray(fileJson);
