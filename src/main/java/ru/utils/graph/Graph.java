@@ -36,7 +36,7 @@ public class Graph {
     private long stopPeriod = 0L;
 
     private final int xSize = 10000;
-    private final int ySize = (int) (xSize / 6);
+    private final int ySize = (int) (xSize / 5);
     private final int xText = xSize / 500;
     private final int yText = xSize / 400;
     private final int fontSize = xSize / 120;
@@ -47,10 +47,45 @@ public class Graph {
     private final int xMax = xSize + xStart + xMarginRight;
     private final int lineSize = Math.max(1, xSize / 5000);
 
-    private final String background = "#f0f0f0"; //"#dfdfdf";
-    private final String[] colors = {"#009f00", "#00009f", "#9f0000", "#9f009f"};
+    private String background = "#ffffff";
+    private List<String> colors = new ArrayList<>();
 
     public Graph() {
+        colors.add("#009f00");
+        colors.add("#00009f");
+        colors.add("#9f0000");
+        colors.add("#9f009f");
+        for (int i = 0; i < 10; i++){ // запас
+            colors.add("#009f00");
+        }
+    }
+
+    /**
+     * Цвет фона
+     * @param background
+     */
+    public void setBackground(String background){
+        this.background = background;
+    }
+
+    /**
+     * Цвет линий списком
+     * @param colors
+     */
+    public void setColor(List<String> colors){
+        this.colors = colors;
+    }
+
+    /**
+     * Цвет линии по номерц
+     * @param num
+     * @param color
+     */
+    public void setColor(int num, String color){
+        while (colors.size() < num){
+            colors.add("#009f00"); // цвет по умолчанию
+        }
+        colors.set(num - 1, color);
     }
 
     /**
@@ -127,6 +162,8 @@ public class Graph {
                 "",
                 null,
                 null,
+                null,
+                null,
                 printMetrics);
     }
 
@@ -150,6 +187,8 @@ public class Graph {
                 stopPeriodStr,
                 null,
                 null,
+                null,
+                null,
                 printMetrics);
     }
 
@@ -161,8 +200,10 @@ public class Graph {
             String title,
             String startPeriodStr,
             String stopPeriodStr,
-            Integer yMinConst,
-            Integer yMaxConst,
+            Number yMinConst,
+            Number yMaxConst,
+            Number yMinNorm,
+            Number yMaxNorm,
             boolean printMetrics) {
 
         if (!startPeriodStr.isEmpty() && startPeriod == 0L) {
@@ -220,10 +261,10 @@ public class Graph {
             return "";
         }
         if (yMinConst != null) {
-            yValueMin = yMinConst;
+            yValueMin = yMinConst.doubleValue();
         }
         if (yMaxConst != null) {
-            yValueMax = yMaxConst;
+            yValueMax = yMaxConst.doubleValue();
         }
 
         if (startPeriod > 0) {
@@ -237,14 +278,6 @@ public class Graph {
             stopPeriod = xValueMax;
         }
 
-
-/*
-"\t<style type=\"text/css\">\n" +
-"\t\t.title-text {fill: #000; font-size: " + fontSize + "px; text-anchor: middle;}\n" +
-"\t\t.title-vertical {writing-mode: tb;}\n" +
-"\t</style>\t \n" +
-*/
-
         sbGraphResult.append("<!--" + title + "-->\n" +
                 "<!-- Область графика -->\n" +
                 "\t<rect " +
@@ -255,7 +288,7 @@ public class Graph {
                 "width=\"" + xSize + "\" " +
                 "height=\"" + ySize + "\"/>\n");
 
-        // описание графиков
+        // описание
         double yCur = fontSize / 1.5;
 /*        for (int i = 0; i < metricViewGroup.getMetricsCount(); i++) {
             if (!metricViewGroup.getMetricView(i).getTitle().isEmpty()) {
@@ -267,12 +300,8 @@ public class Graph {
         }
 */
 
-        boolean yStartFrom0 = false;
         // ось Y
         sbGraphResult.append("<!-- Ось Y -->\n");
-        if (yStartFrom0) {
-            yValueMin = 0L;
-        } // начальное значение по оси Y = 0 или минимальному значению из списка
         yValueMin = (int) yValueMin;
         if (yValueMax > 1) {
             yValueMax = (int) (Math.ceil(yValueMax / 1.00) * 1);
@@ -320,6 +349,29 @@ public class Graph {
             yCur = yCur - yStep;
             yValue = yValue + yRatioValue;
         }
+        // норма
+        if (yMinNorm != null) {
+            sbGraphResult.append("<!-- Норма Y min -->\n");
+            double y = yMax - Math.round((yMinNorm.doubleValue() - yValueMin) * yRatio);
+            sbGraphResult.append("\t<polyline " +
+                    "fill=\"none\" " +
+                    "stroke=\"#000000\" " +
+                    "stroke-dasharray=\"" + xText + "\" " +
+                    "stroke-width=\"" + lineSize + "\" " +
+                    "points=\"" + xStart + "," + y + "  " + xMax + "," + y + "\"/>\n");
+        }
+        if (yMaxNorm != null) {
+            sbGraphResult.append("<!-- Норма Y max -->\n");
+            double y = yMax - Math.round((yMaxNorm.doubleValue() - yValueMin) * yRatio);
+            sbGraphResult.append("\t<polyline " +
+                    "fill=\"none\" " +
+                    "stroke=\"#000000\" " +
+                    "stroke-dasharray=\"" + xText + "\" " +
+                    "stroke-width=\"" + lineSize + "\" " +
+                    "points=\"" + xStart + "," + y + "  " + xMax + "," + y + "\"/>\n");
+        }
+
+
         sbGraphResult.append("<!-- Название графика -->\n")
                 .append("\t<text " +
                         "font-size=\"" + (fontSize * 2) + "\" " +
@@ -333,6 +385,9 @@ public class Graph {
         int xAccuracy = 60000;
         sbGraphResult.append("<!-- Ось X -->\n");
         long xValueRange = xValueMax - xValueMin;
+        if (xValueRange < 1) {
+            return  "";
+        }
         double xScale;
         int kfX = 60;
         while (true) {
@@ -390,13 +445,12 @@ public class Graph {
 
 
         // рисуем график
-        xCur = xStart;
         StringBuilder sbSignature = new StringBuilder("<!-- Метрики на графике -->\n"); // значения метрик на графике
         StringBuilder sbSignatureTitle = new StringBuilder("<!-- Всплывающие надписи -->\n"); // значения метрик на графике
 
         StringBuilder[] sbGraph = new StringBuilder[metricCount]; // графики
         for (int m = 0; m < metricCount; m++) { // перебираем метрики для отображения
-            String curColor = colors[m];
+            String curColor = colors.get(m);
             sbGraph[m] = new StringBuilder();
             sbGraph[m].append("<!-- График" + (m + 1) + " -->\n" +
                     "\t<polyline " +
@@ -404,48 +458,49 @@ public class Graph {
                     "stroke=\"" + curColor + "\" " +
                     "stroke-width=\"" + (lineSize * 2) + "\" " +
                     "points=\"\n");
-//                    "points=\"" + xCur + "," + yMax + " \n");
         }
 
         for (int i = 1; i < metricsList.size(); i++) {
-            xCur = (metricsList.get(i).getTime() - xValueMin) * xRatio + xStart;
-            List<Double> yPrevList = new ArrayList<>();
-            for (int m = 0; m < metricCount; m++) { // перебираем метрики для отображения
-                String curColor = colors[m];
-                double y = yMax - Math.round((metricsList.get(i).getValue(m) - yValueMin) * yRatio);
-                // график
-                sbGraph[m].append(xCur + "," + y + " \n");
-                // значение отличается от предыдущего
-                if (i == 1 || metricsList.get(i - 1).getValue(m) != metricsList.get(i).getValue(m)) {
-                    // значение метрики
-                    if (printMetrics) {
-                        // надписи не пересекаются
-                        boolean print = true;
-                        for (int p = 0; p < yPrevList.size(); p++) {
-                            if (Math.abs(y - yPrevList.get(p)) < yText * 4) {
-                                print = false;
-                                break;
+            if (metricsList.get(i).getTime() >= startPeriod && metricsList.get(i).getTime() <= stopPeriod) {
+                xCur = (metricsList.get(i).getTime() - xValueMin) * xRatio + xStart;
+                List<Double> yPrevList = new ArrayList<>();
+                for (int m = 0; m < metricCount; m++) { // перебираем метрики для отображения
+                    String curColor = colors.get(m);
+                    double y = yMax - Math.round((metricsList.get(i).getValue(m) - yValueMin) * yRatio);
+                    // график
+                    sbGraph[m].append(xCur + "," + y + " \n");
+                    // значение отличается от предыдущего
+                    if (i == 1 || metricsList.get(i - 1).getValue(m) != metricsList.get(i).getValue(m)) {
+                        // значение метрики
+                        if (printMetrics) {
+                            // надписи не пересекаются
+                            boolean print = true;
+                            for (int p = 0; p < yPrevList.size(); p++) {
+                                if (Math.abs(y - yPrevList.get(p)) < yText * 4) {
+                                    print = false;
+                                    break;
+                                }
+                            }
+                            if (print) {
+                                sbSignature.append("\t<text " +
+                                        "font-size=\"" + fontSize + "\" " +
+                                        "fill=\"#000000\" " +
+//                                    "font-weight=\"bold\" " +
+                                        "x=\"" + (xCur - xText) + "\" " +
+                                        "y=\"" + (y - yText) + "\">" +
+                                        decimalFormat.format(metricsList.get(i).getValue(m)) + "</text>\n");
+                                yPrevList.add(y);
                             }
                         }
-                        if (print) {
-                            sbSignature.append("\t<text " +
-                                    "font-size=\"" + fontSize + "\" " +
-                                    "fill=\"#000000\" " +
-//                                    "font-weight=\"bold\" " +
-                                    "x=\"" + (xCur - xText) + "\" " +
-                                    "y=\"" + (y - yText) + "\">" +
-                                    decimalFormat.format(metricsList.get(i).getValue(m)) + "</text>\n");
-                            yPrevList.add(y);
-                        }
                     }
+                    // точка с всплывающим описанием
+                    sbSignatureTitle.append("\t<g> " +
+                            "<circle stroke=\"" + curColor + "\" cx=\"" + xCur + "\" cy=\"" + y + "\" r=\"" + (lineSize * 5) + "\"/> " +
+                            "<title>");
+                    sbSignatureTitle.append("время: " + sdf2.format(metricsList.get(i).getTime()) + "; " +
+                            "значение: " + decimalFormat.format(metricsList.get(i).getValue(m)) + "</title> " +
+                            "</g>\n");
                 }
-                // точка с всплывающим описанием
-                sbSignatureTitle.append("\t<g> " +
-                        "<circle stroke=\"" + curColor + "\" cx=\"" + xCur + "\" cy=\"" + y + "\" r=\"" + (lineSize * 5) + "\"/> " +
-                        "<title>");
-                sbSignatureTitle.append("время: " + sdf2.format(metricsList.get(i).getTime()) + "; " +
-                        "значение: " + decimalFormat.format(metricsList.get(i).getValue(m)) + "</title> " +
-                        "</g>\n");
             }
         }
         for (int i = 0; i < metricCount; i++) {
@@ -491,4 +546,5 @@ public class Graph {
                 "\t</body>\n" +
                 "</html>";
     }
+
 }

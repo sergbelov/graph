@@ -17,7 +17,8 @@ public class App {
 
         String startPeriod = "2019-01-01 00:00";
         String stopPeriod = "2019-12-31 23:59";
-        startPeriod = "";
+        startPeriod = "2019-05-29 00:00";
+//        startPeriod = "";
         stopPeriod = "";
 
         String fileJson = "json/1.json";
@@ -28,8 +29,14 @@ public class App {
         JSONArray jsonArrayArterialPressure = readJSONArray(fileJson);
         LOG.info("{}", jsonArrayArterialPressure);
 
+
+
+
         Graph graph = new Graph();
         FileUtils fileUtils = new FileUtils();
+
+//        graph.setBackground("#ffffff"); // задаем цвет фона
+//        graph.setColor(1, "#ff0000"); // задаем цвет фона для первого графика
 
         String graphSvg;
 
@@ -57,6 +64,8 @@ public class App {
                 stopPeriod,
                 40,
                 180,
+                60,
+                90,
                 false);
 
         graph.addGraph(
@@ -66,9 +75,40 @@ public class App {
                 stopPeriod,
                 50,
                 200,
+                80,
+                120,
                 false);
 
-//        graphSvg = graph.getSvg();
+        graph.addGraph(
+                jsonArrayArterialPressure,
+                "ArterialPressure",
+                startPeriod,
+                stopPeriod,
+                50,
+                200,
+                80,
+                120,
+                false);
+        graph.addGraph(
+                jsonArrayArterialPressure,
+                "ArterialPressure",
+                startPeriod,
+                stopPeriod,
+                50,
+                200,
+                80,
+                120,
+                false);
+        graph.addGraph(
+                jsonArrayArterialPressure,
+                "ArterialPressure",
+                startPeriod,
+                stopPeriod,
+                50,
+                200,
+                80,
+                120,
+                false);
 
         fileUtils.writeFile("Graph.html", graph.getHtml());
     }
