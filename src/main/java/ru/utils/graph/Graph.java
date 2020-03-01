@@ -19,14 +19,17 @@ public class Graph {
     private static final Logger LOG = LogManager.getLogger(Graph.class);
     private final NumberFormat decimalFormat = NumberFormat.getInstance();
     private final DateFormat datetimeFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-    private final DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-    private final DateFormat sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    private final DateFormat sdf1 = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-    private final DateFormat sdf2 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-    private final DateFormat sdf3 = new SimpleDateFormat("yyyyMMddHHmmss");
+    private DateFormat sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    private DateFormat sdf1 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+    private final DateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private final DateFormat sdf3 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
     private final DateFormat sdf4 = new SimpleDateFormat("HH:mm:ss");
     private final DateFormat sdf5 = new SimpleDateFormat("HH:mm");
     private final DateFormat sdf6 = new SimpleDateFormat("yyyyMMdd");
+
+//    private final long xAccuracy = 60000; // минимальный временной шаг (мс)
+//    private final long xAccuracy = 60000 * 60; // минимальный временной шаг (мс)
+    private final long xAccuracy = 1000 * 60 * 60 * 24; // минимальный временной шаг (мс)
 
     private int graphNum = 0;
     private StringBuilder sbGraphResult = new StringBuilder();
@@ -57,6 +60,17 @@ public class Graph {
         colors.add("#9f009f");
         for (int i = 0; i < 10; i++){ // запас
             colors.add("#009f00");
+        }
+
+        if (xAccuracy == 60000 * 60 * 24) {
+            sdf0 = new SimpleDateFormat("yyyy-MM-dd");
+            sdf1 = new SimpleDateFormat("dd-MM-yyyy");
+        } else if (xAccuracy == 60000 * 60) {
+            sdf0 = new SimpleDateFormat("yyyy-MM-dd HH");
+            sdf1 = new SimpleDateFormat("dd-MM-yyyy HH");
+        } else {
+            sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            sdf1 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
         }
     }
 
@@ -105,7 +119,7 @@ public class Graph {
             }
             if (key.equals("date")) {
                 try {
-                    date = sdf0.parse(jsonObject.getString("date")).getTime();
+                    date = sdf2.parse(jsonObject.getString("date")).getTime();
                 } catch (Exception e) {
                     LOG.error("Ошибка в формате даты");
                 }
@@ -208,7 +222,7 @@ public class Graph {
 
         if (!startPeriodStr.isEmpty() && startPeriod == 0L) {
             try {
-                startPeriod = sdf.parse(startPeriodStr).getTime();
+                startPeriod = sdf0.parse(startPeriodStr).getTime();
             } catch (ParseException e) {
                 LOG.error("Ошибка в формате даты: {}", startPeriodStr);
                 return "";
@@ -216,17 +230,12 @@ public class Graph {
         }
         if (!stopPeriodStr.isEmpty() && stopPeriod == 0L) {
             try {
-                stopPeriod = sdf.parse(stopPeriodStr).getTime();
+                stopPeriod = sdf0.parse(stopPeriodStr).getTime();
             } catch (ParseException e) {
                 LOG.error("Ошибка в формате даты: {}", stopPeriodStr);
                 return "";
             }
         }
-
-        LOG.info("Формирование графика {} ({} - {})",
-                title,
-                sdf.format(startPeriod),
-                sdf.format(stopPeriod));
 
         List<DateTimeValue> metricsList = jsonToList(jsonArrayData);
         int metricCount = metricsList.get(0).getValueSize();
@@ -248,10 +257,10 @@ public class Graph {
             xValueMax = Math.max(xValueMax, metricsList.get(i).getTime());
         }
         LOG.debug("Min X: {} ({}), Max X: {} ({}), Min Y: {} ({}), Max Y: {} ({})",
-                sdf0.format(xValueMin),
-                startPeriod > 0L ? sdf0.format(startPeriod) : "",
-                sdf0.format(xValueMax),
-                startPeriod > 0L ? sdf0.format(stopPeriod) : "",
+                sdf2.format(xValueMin),
+                startPeriod > 0L ? sdf2.format(startPeriod) : "",
+                sdf2.format(xValueMax),
+                startPeriod > 0L ? sdf2.format(stopPeriod) : "",
                 yValueMin,
                 yMinConst,
                 yValueMax,
@@ -277,6 +286,28 @@ public class Graph {
         } else {
             stopPeriod = xValueMax;
         }
+
+        // округляем время начало периода
+        try {
+            startPeriod = sdf0.parse(sdf0.format(startPeriod)).getTime();
+            xValueMin = startPeriod;
+        } catch (ParseException e) {
+            LOG.error("Ошибка в формате даты", e);
+        }
+
+        // округляем время окончание периода
+        stopPeriod = (long) (Math.ceil((stopPeriod + xAccuracy) / xAccuracy * 1.00) * xAccuracy);
+        try {
+            stopPeriod = sdf0.parse(sdf0.format(stopPeriod)).getTime();
+            xValueMax = stopPeriod;
+        } catch (ParseException e) {
+            LOG.error("Ошибка в формате даты", e);
+        }
+
+        LOG.info("Формирование графика {} ({} - {})",
+                title,
+                sdf2.format(startPeriod),
+                sdf2.format(stopPeriod));
 
         sbGraphResult.append("<!--" + title + "-->\n" +
                 "<!-- Область графика -->\n" +
@@ -382,7 +413,7 @@ public class Graph {
                         "" + title + "</text>\n");
 
         // ось X
-        int xAccuracy = 60000;
+//        int xAccuracy = 60000;
         sbGraphResult.append("<!-- Ось X -->\n");
         long xValueRange = xValueMax - xValueMin;
         if (xValueRange < 1) {
@@ -401,7 +432,7 @@ public class Graph {
                 xValueMax = xValueMax + xAccuracy;
                 xValueRange = xValueMax - xValueMin;
             }
-//            LOG.info("{}: {} {}, {}", multiRunService.getName(), xValueMin, xValueMax, xScale);
+//            LOG.info("{} {} ({}), {}", sdf2.format(xValueMin), sdf2.format(xValueMax), xValueMax - xValueMin, xScale);
         }
         double xRatio = xSize / (xValueRange * 1.00);
         double xRatioValue = xValueRange / xScale;
@@ -432,7 +463,7 @@ public class Graph {
 //                        "y=\"" + (yMax + yText) + "\">");
                                     "y=\"" + yText + "\">");
                     if (!sdf6.format(xValueMem).equals(sdf6.format(xValue))) { // полную дату выводим 1 раз
-                        sbGraphResult.append(sdf2.format(xValue)).append("</text>\n");
+                        sbGraphResult.append(sdf1.format(xValue)).append("</text>\n");
                         xValueMem = xValue;
                     } else {
                         sbGraphResult.append(sdf5.format(xValue)).append("</text>\n");
@@ -497,7 +528,7 @@ public class Graph {
                     sbSignatureTitle.append("\t<g> " +
                             "<circle stroke=\"" + curColor + "\" cx=\"" + xCur + "\" cy=\"" + y + "\" r=\"" + (lineSize * 5) + "\"/> " +
                             "<title>");
-                    sbSignatureTitle.append("время: " + sdf2.format(metricsList.get(i).getTime()) + "; " +
+                    sbSignatureTitle.append("время: " + sdf3.format(metricsList.get(i).getTime()) + "; " +
                             "значение: " + decimalFormat.format(metricsList.get(i).getValue(m)) + "</title> " +
                             "</g>\n");
                 }
@@ -514,6 +545,11 @@ public class Graph {
         return getSvg();
     }
 
+
+
+    public String addTable(){
+        return "";
+    }
 
     /**
      * Получить все графики

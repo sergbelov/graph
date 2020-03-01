@@ -7,6 +7,8 @@ import ru.utils.graph.Graph;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
 public class App {
@@ -19,8 +21,9 @@ public class App {
         String stopPeriod = "2019-12-31 23:59";
         startPeriod = "2019-06-12 00:00";
         stopPeriod = "2019-06-19 00:00";
-//        startPeriod = "";
-//        stopPeriod = "";
+        startPeriod = "";
+        stopPeriod = "";
+
 
         String fileJson = "json/1.json";
         JSONArray jsonArrayPulse = readJSONArray(fileJson);
