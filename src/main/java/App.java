@@ -16,13 +16,12 @@ public class App {
     private static final Logger LOG = LogManager.getLogger();
 
     public static void main(String[] args) {
+        FileUtils fileUtils = new FileUtils();
 
         String startPeriod = "2019-01-01 00:00";
         String stopPeriod = "2019-12-31 23:59";
         startPeriod = "2019-06-12 00:00";
         stopPeriod = "2019-06-19 00:00";
-        startPeriod = "";
-        stopPeriod = "";
 
 
         String fileJson = "json/1.json";
@@ -37,26 +36,30 @@ public class App {
 
 
         Graph graph = new Graph();
-        FileUtils fileUtils = new FileUtils();
-
 //        graph.setBackground("#ffffff"); // задаем цвет фона
 //        graph.setColor(1, "#ff0000"); // задаем цвет фона для первого графика
+        graph.setPeriod(startPeriod, stopPeriod); // задаем отчетный период
+
 
         String graphSvg;
+
+        graph.addTable(
+                jsonArrayArterialPressure,
+                "ArterialPressure");
+
+        graph.addTable(
+                jsonArrayPulse,
+                "pulse");
 
         graphSvg = graph.addGraph(
                 jsonArrayPulse,
                 "pulse",
-                startPeriod,
-                stopPeriod,
                 false);
         fileUtils.writeFile("Graph1.svg", graphSvg);
 
         graphSvg = graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
-                startPeriod,
-                stopPeriod,
                 false);
         fileUtils.writeFile("Graph2.svg", graphSvg);
 
@@ -64,8 +67,6 @@ public class App {
         graph.addGraph(
                 jsonArrayPulse,
                 "pulse",
-                startPeriod,
-                stopPeriod,
                 40,
                 180,
                 60,
@@ -75,8 +76,6 @@ public class App {
         graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
-                startPeriod,
-                stopPeriod,
                 50,
                 200,
                 80,
@@ -86,8 +85,6 @@ public class App {
         graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
-                startPeriod,
-                stopPeriod,
                 50,
                 200,
                 80,
@@ -96,18 +93,6 @@ public class App {
         graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
-                startPeriod,
-                stopPeriod,
-                50,
-                200,
-                80,
-                120,
-                false);
-        graph.addGraph(
-                jsonArrayArterialPressure,
-                "ArterialPressure",
-                startPeriod,
-                stopPeriod,
                 50,
                 200,
                 80,
