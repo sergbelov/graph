@@ -20,8 +20,8 @@ public class App {
 
         String startPeriod = "2019-01-01 00:00";
         String stopPeriod = "2019-12-31 23:59";
-        startPeriod = "2019-06-12 00:00";
-        stopPeriod = "2019-06-19 00:00";
+//        startPeriod = "2019-06-12 00:00";
+//        stopPeriod = "2019-06-19 00:00";
 
 
         String fileJson = "json/1.json";
@@ -44,6 +44,12 @@ public class App {
         String graphSvg;
 
         graph.addTable(
+                jsonArrayPulse,
+                "Гемоглобин",
+                75,
+                78);
+
+        graph.addTable(
                 jsonArrayArterialPressure,
                 "ArterialPressure");
 
@@ -53,14 +59,12 @@ public class App {
 
         graphSvg = graph.addGraph(
                 jsonArrayPulse,
-                "pulse",
-                false);
+                "pulse");
         fileUtils.writeFile("Graph1.svg", graphSvg);
 
         graphSvg = graph.addGraph(
                 jsonArrayArterialPressure,
-                "ArterialPressure",
-                false);
+                "ArterialPressure");
         fileUtils.writeFile("Graph2.svg", graphSvg);
 
 
@@ -70,8 +74,7 @@ public class App {
                 40,
                 180,
                 60,
-                90,
-                false);
+                90);
 
         graph.addGraph(
                 jsonArrayArterialPressure,
@@ -79,8 +82,7 @@ public class App {
                 50,
                 200,
                 80,
-                120,
-                false);
+                120);
 
         graph.addGraph(
                 jsonArrayArterialPressure,
@@ -88,16 +90,14 @@ public class App {
                 50,
                 200,
                 80,
-                120,
-                false);
+                120);
         graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
                 50,
                 200,
                 80,
-                120,
-                false);
+                120);
 
         fileUtils.writeFile("Graph.html", graph.getHtml());
     }

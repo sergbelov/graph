@@ -47,23 +47,24 @@ public class Graph {
     private final int fontSizeX = xSize / 156;
     private final int yMarginTop = xSize / 15;
     private final int xMarginRight = xSize / 300;
-    private final int xStart = xSize / 20;
+    private final int xStart = xSize / 15;
     private final int xMax = xSize + xStart + xMarginRight;
     private final int lineSize = Math.max(1, xSize / 5000);
     private final int maxStepInX = 60; // максимальное количество шагов по оси X
     private final int maxStepInY = 30;
     private int yStart = yMarginTop;
 
-
+    private boolean printMetrics = false;
     private String background = "#ffffff";
     private List<String> colors = new ArrayList<>();
+
 
     public Graph() {
         colors.add("#009f00");
         colors.add("#00009f");
         colors.add("#9f0000");
         colors.add("#9f009f");
-        for (int i = 0; i < 10; i++){ // запас
+        for (int i = 0; i < 10; i++) { // запас
             colors.add("#009f00");
         }
 
@@ -83,7 +84,7 @@ public class Graph {
      * Цвет фона
      * @param background
      */
-    public void setBackground(String background){
+    public void setBackground(String background) {
         this.background = background;
     }
 
@@ -91,17 +92,17 @@ public class Graph {
      * Цвет линий списком
      * @param colors
      */
-    public void setColor(List<String> colors){
+    public void setColor(List<String> colors) {
         this.colors = colors;
     }
 
     /**
-     * Цвет линии по номерц
+     * Цвет линии по номеру
      * @param num
      * @param color
      */
-    public void setColor(int num, String color){
-        while (colors.size() < num){
+    public void setColor(int num, String color) {
+        while (colors.size() < num) {
             colors.add("#009f00"); // цвет по умолчанию
         }
         colors.set(num - 1, color);
@@ -171,7 +172,7 @@ public class Graph {
      * @param startPeriodStr
      * @param stopPeriodStr
      */
-    public void setPeriod(String startPeriodStr, String stopPeriodStr){
+    public void setPeriod(String startPeriodStr, String stopPeriodStr) {
         long startPeriod = 0L;
         long stopPeriod = 0L;
         if (!startPeriodStr.isEmpty()) {
@@ -196,7 +197,7 @@ public class Graph {
      * @param startPeriod
      * @param stopPeriod
      */
-    public void setPeriod(long startPeriod, long stopPeriod){
+    public void setPeriod(long startPeriod, long stopPeriod) {
         if (startPeriod < stopPeriod) {
 
             // округляем время начала периода
@@ -232,26 +233,31 @@ public class Graph {
     }
 
     /**
-     * @param jsonArrayData
-     * @param title
-     * @param printMetrics
+     * @param jsonArrayData список метрик
+     * @param title         название графика
      * @return
      */
     public String addGraph(
             JSONArray jsonArrayData,
-            String title,
-            boolean printMetrics) {
+            String title) {
         return addGraph(jsonArrayData,
                 title,
                 null,
                 null,
                 null,
-                null,
-                printMetrics);
+                null);
     }
+
 
     /**
      * Линейный график
+     * @param jsonArrayData список метрик
+     * @param title         название графика
+     * @param yMinConst     минимальное значение диапазона Y
+     * @param yMaxConst     макимальное значение диапазона Y
+     * @param yMinNorm      минимальное допустимое значение Y
+     * @param yMaxNorm      максимальное допустимое значение Y
+     * @return
      */
     public String addGraph(
             JSONArray jsonArrayData,
@@ -259,10 +265,9 @@ public class Graph {
             Number yMinConst,
             Number yMaxConst,
             Number yMinNorm,
-            Number yMaxNorm,
-            boolean printMetrics) {
+            Number yMaxNorm) {
 
-        if (startPeriod > stopPeriod){
+        if (startPeriod > stopPeriod) {
             LOG.error("Не верно задан период для отчета");
             return "";
         }
@@ -334,14 +339,12 @@ public class Graph {
             }
         }
 */
-
         // ось Y
         sbGraphResult.append("<!-- Ось Y -->\n");
         yValueMin = (int) yValueMin;
         if (yValueMax > 1) {
             yValueMax = (int) (Math.ceil(yValueMax / 1.00) * 1);
         }
-//        kfy = 40;
         double yValueRange = yValueMax - yValueMin;
         double yScale = Math.max(Math.min(maxStepInY, yValueRange), 10);
         if (yValueRange > 10) {
@@ -459,7 +462,6 @@ public class Graph {
             }
         }
 
-
         // рисуем график
         StringBuilder sbSignature = new StringBuilder("<!-- Метрики на графике -->\n"); // значения метрик на графике
         StringBuilder sbSignatureTitle = new StringBuilder("<!-- Всплывающие надписи -->\n"); // значения метрик на графике
@@ -534,15 +536,37 @@ public class Graph {
 
     /**
      * Таблица
-     * @param jsonArrayData
-     * @param title
+     * @param jsonArrayData список метрик
+     * @param title         название
      * @return
      */
     public String addTable(
             JSONArray jsonArrayData,
-            String title) {
+            String title
+    ) {
+        return addTable(
+                jsonArrayData,
+                title,
+                null,
+                null);
+    }
 
-        if (startPeriod > stopPeriod){
+
+    /**
+     * Таблица
+     * @param jsonArrayData список метрик
+     * @param title         название графика
+     * @param yMinNorm      минимальное допустимое значение Y
+     * @param yMaxNorm      максимальное допустимое значение Y
+     * @return
+     */
+    public String addTable(
+            JSONArray jsonArrayData,
+            String title,
+            Number yMinNorm,
+            Number yMaxNorm
+    ) {
+        if (startPeriod > stopPeriod) {
             LOG.error("Не верно задан период для отчета");
             return "";
         }
@@ -570,7 +594,6 @@ public class Graph {
                 "width=\"" + xSize + "\" " +
                 "height=\"" + ySizeTable + "\"/>\n");
 
-
         double yCur = yStart;
         sbGraphResult.append("\t<polyline " +
                 "fill=\"none\" " +
@@ -578,13 +601,21 @@ public class Graph {
                 "stroke-width=\"" + (lineSize * 2) + "\" " +
                 "points=\"" + xStart + "," + yCur + "  " + xMax + "," + yCur + "\"/>\n");
 
-        for (int i = 0; i < metricCount; i++){
+        for (int i = 0; i < metricCount; i++) {
             yCur = yCur + fontSize;
             sbGraphResult.append("\t<polyline " +
                     "fill=\"none\" " +
                     "stroke=\"#000000\" " +
                     "stroke-width=\"" + lineSize * 2 + "\" " +
                     "points=\"" + xStart + "," + yCur + "  " + xMax + "," + yCur + "\"/>\n");
+            sbGraphResult.append("\t<text font-size=\"")
+                    .append(fontSize)
+                    .append("\" " +
+                            "font-family=\"Areal\" " +
+                            "x=1 " +
+                            "y=\"" + (yStart + fontSize * (i + 1) - fontSize / 5) + "\">")
+                    .append(title)
+                    .append("</text>\n");
         }
 
         // ось X
@@ -600,23 +631,34 @@ public class Graph {
         long xValueMem = 0;
         if (xStep > 0) {
             while (xValue <= xValueMax) {
-                if (xValue != xValuePrev){
-                    for (int i = 0; i < metricCount; i++){
+                if (xValue != xValuePrev) {
+                    for (int i = 0; i < metricCount; i++) {
                         double val = 0;
-                        for (int v = 0; v < metricsList.size(); v++){
-                            if (metricsList.get(v).getTime() > xValuePrev && metricsList.get(v).getTime() <= xValue){
+                        for (int v = 0; v < metricsList.size(); v++) {
+                            if (metricsList.get(v).getTime() > xValuePrev && metricsList.get(v).getTime() <= xValue) {
                                 val = metricsList.get(v).getDoubleValue(i);
                             }
                         }
-                        if (val > 0){
+                        if (val > 0) {
                             sbGraphResult.append("\t<text font-size=\"")
                                     .append(fontSize)
                                     .append("\" " +
                                             "font-family=\"Areal\" " +
-                                            "x=\"" + (xCur-fontSize*2) + "\" " +
-                                            "y=\"" + (yStart + fontSize * (i+1) - fontSize/5) + "\">")
-                                    .append(decimalFormat.format(val))
-                                    .append("</text>\n");
+                                            "font-weight=\"bold\" " +
+                                            "x=\"")
+                                    .append(xCur - fontSize * 2)
+                                    .append("\" ")
+                                    .append("y=\"")
+                                    .append((yStart + fontSize * (i + 1) - fontSize / 5))
+                                    .append("\"");
+
+                            if ( (yMinNorm != null && val < yMinNorm.doubleValue()) ||
+                                 (yMaxNorm != null && val > yMaxNorm.doubleValue()) ){
+                                sbGraphResult.append(" fill=\"#ff0000\"");
+                            }
+                            sbGraphResult.append(">")
+                                        .append(decimalFormat.format(val))
+                                        .append("</text>\n");
                         }
                     }
                     xValuePrev = xValue;
@@ -656,7 +698,6 @@ public class Graph {
 
     /**
      * Получить все графики
-     *
      * @return
      */
     public String getSvg() {
@@ -670,6 +711,10 @@ public class Graph {
                 "</svg>";
     }
 
+    /**
+     * Получить графики в формате html
+     * @return
+     */
     public String getHtml() {
         return "<html>\n" +
                 "\t<head>\n" +
