@@ -1,22 +1,17 @@
 package ru.utils.graph;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import ru.utils.graph.data.DateTimeValue;
 
 import java.text.DateFormat;
 import java.text.NumberFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 public class Graph {
-    private static final Logger LOG = LogManager.getLogger(Graph.class);
     private final NumberFormat decimalFormat = NumberFormat.getInstance();
     private final DateFormat datetimeFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
     private DateFormat sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm");
@@ -112,23 +107,14 @@ public class Graph {
      * Добавляем элемент jsonObject в metricsList
      * @param jsonObject
      */
-    private DateTimeValue getElementFromJSONObject(JSONObject jsonObject) {
+    private DateTimeValue getElementFromJSONObject(JSONObject jsonObject) throws Exception {
         long date = 0L;
         Iterator<?> keys = jsonObject.sortedKeys();
         List<Number> dataList = new ArrayList<>();
         while (keys.hasNext()) {
             String key = (String) keys.next();
-            try {
-                LOG.trace("{}: {}", key, jsonObject.getString(key));
-            } catch (JSONException e) {
-                LOG.error("Ошибка в формате json", e);
-            }
             if (key.equals("date")) {
-                try {
-                    date = sdf2.parse(jsonObject.getString("date")).getTime();
-                } catch (Exception e) {
-                    LOG.error("Ошибка в формате даты");
-                }
+                date = sdf2.parse(jsonObject.getString("date")).getTime();
             } else {
                 int index = -1;
                 if (metricsNameList.size() > 0) {
@@ -138,11 +124,7 @@ public class Graph {
                     metricsNameList.add(key);
                     index = metricsNameList.size() - 1;
                 }
-                try {
-                    dataList.add(jsonObject.getDouble(key));
-                } catch (Exception e) {
-                    LOG.error("Ошибка в формате json\n", e);
-                }
+                dataList.add(jsonObject.getDouble(key));
             }
         }
         return new DateTimeValue(date, dataList);
@@ -153,15 +135,11 @@ public class Graph {
      * @param jsonArrayData
      * @return
      */
-    private List<DateTimeValue> jsonToList(JSONArray jsonArrayData) {
+    private List<DateTimeValue> jsonToList(JSONArray jsonArrayData) throws Exception {
         List<DateTimeValue> metricsList = new ArrayList<>();
         for (int i = 0; i < jsonArrayData.length(); i++) {
-            try {
-                JSONObject jsonObject = jsonArrayData.getJSONObject(i);
-                metricsList.add(getElementFromJSONObject(jsonObject));
-            } catch (JSONException e) {
-                LOG.error("Ошибка в формате данных");
-            }
+            JSONObject jsonObject = jsonArrayData.getJSONObject(i);
+            metricsList.add(getElementFromJSONObject(jsonObject));
         }
         return metricsList;
     }
@@ -172,22 +150,14 @@ public class Graph {
      * @param startPeriodStr
      * @param stopPeriodStr
      */
-    public void setPeriod(String startPeriodStr, String stopPeriodStr) {
+    public void setPeriod(String startPeriodStr, String stopPeriodStr) throws Exception {
         long startPeriod = 0L;
         long stopPeriod = 0L;
         if (!startPeriodStr.isEmpty()) {
-            try {
-                startPeriod = sdf0.parse(startPeriodStr).getTime();
-            } catch (ParseException e) {
-                LOG.error("Ошибка в формате даты: {}", startPeriodStr, e);
-            }
+            startPeriod = sdf0.parse(startPeriodStr).getTime();
         }
         if (!stopPeriodStr.isEmpty()) {
-            try {
-                stopPeriod = sdf0.parse(stopPeriodStr).getTime();
-            } catch (ParseException e) {
-                LOG.error("Ошибка в формате даты: {}", stopPeriodStr, e);
-            }
+            stopPeriod = sdf0.parse(stopPeriodStr).getTime();
         }
         setPeriod(startPeriod, stopPeriod);
     }
@@ -197,23 +167,13 @@ public class Graph {
      * @param startPeriod
      * @param stopPeriod
      */
-    public void setPeriod(long startPeriod, long stopPeriod) {
+    public void setPeriod(long startPeriod, long stopPeriod) throws Exception {
         if (startPeriod < stopPeriod) {
-
             // округляем время начала периода
-            try {
-                this.startPeriod = sdf0.parse(sdf0.format(startPeriod)).getTime();
-            } catch (ParseException e) {
-                LOG.error("Ошибка в формате даты", e);
-            }
-
+            this.startPeriod = sdf0.parse(sdf0.format(startPeriod)).getTime();
             // округляем время окончания периода
             this.stopPeriod = (long) (Math.ceil((stopPeriod + xAccuracy) / xAccuracy * 1.00) * xAccuracy);
-            try {
-                this.stopPeriod = sdf0.parse(sdf0.format(this.stopPeriod)).getTime();
-            } catch (ParseException e) {
-                LOG.error("Ошибка в формате даты", e);
-            }
+            this.stopPeriod = sdf0.parse(sdf0.format(this.stopPeriod)).getTime();
             while (true) {
                 long xValueRange = this.stopPeriod - this.startPeriod;
                 xScale = Math.min(maxStepInX, xValueRange);
@@ -225,11 +185,18 @@ public class Graph {
                 } else {
                     this.stopPeriod = this.stopPeriod + xAccuracy;
                 }
-//            LOG.info("{} {} ({}), {}", sdf2.format(xValueMin), sdf2.format(xValueMax), xValueMax - xValueMin, xScale);
             }
+            graphNum = 0;
+            sbGraphResult.setLength(0);
         } else {
-            LOG.error("Ошибка в датах: {} {}", sdf2.format(this.startPeriod), sdf2.format(this.stopPeriod));
+            throw new Exception("Ошибка в датах: " + sdf2.format(this.startPeriod) + " " + sdf2.format(this.stopPeriod));
         }
+    }
+
+    public void clear(){
+        graphNum = 0;
+        yStart = yMarginTop;
+        sbGraphResult.setLength(0);
     }
 
     /**
@@ -239,7 +206,7 @@ public class Graph {
      */
     public String addGraph(
             JSONArray jsonArrayData,
-            String title) {
+            String title) throws Exception {
         return addGraph(jsonArrayData,
                 title,
                 null,
@@ -265,11 +232,10 @@ public class Graph {
             Number yMinConst,
             Number yMaxConst,
             Number yMinNorm,
-            Number yMaxNorm) {
+            Number yMaxNorm) throws Exception {
 
         if (startPeriod > stopPeriod) {
-            LOG.error("Не верно задан период для отчета");
-            return "";
+            throw new Exception("Не верно задан период для отчета");
         }
         List<DateTimeValue> metricsList = jsonToList(jsonArrayData);
         int metricCount = metricsList.get(0).getValueSize();
@@ -290,15 +256,6 @@ public class Graph {
             xValueMin = Math.min(xValueMin, metricsList.get(i).getTime());
             xValueMax = Math.max(xValueMax, metricsList.get(i).getTime());
         }
-        LOG.debug("Min X: {} ({}), Max X: {} ({}), Min Y: {} ({}), Max Y: {} ({})",
-                sdf2.format(xValueMin),
-                startPeriod > 0L ? sdf2.format(startPeriod) : "",
-                sdf2.format(xValueMax),
-                startPeriod > 0L ? sdf2.format(stopPeriod) : "",
-                yValueMin,
-                yMinConst,
-                yValueMax,
-                yMaxConst);
 
         if (xValueMax == 0 || yValueMax == 0) {
             return "";
@@ -312,11 +269,6 @@ public class Graph {
 
         xValueMin = startPeriod;
         xValueMax = stopPeriod;
-
-        LOG.info("Формирование графика {} ({} - {})",
-                title,
-                sdf2.format(startPeriod),
-                sdf2.format(stopPeriod));
 
         sbGraphResult.append("<!--" + title + "-->\n" +
                 "<!-- Область графика -->\n" +
@@ -543,7 +495,7 @@ public class Graph {
     public String addTable(
             JSONArray jsonArrayData,
             String title
-    ) {
+    ) throws Exception {
         return addTable(
                 jsonArrayData,
                 title,
@@ -565,10 +517,9 @@ public class Graph {
             String title,
             Number yMinNorm,
             Number yMaxNorm
-    ) {
+    ) throws Exception{
         if (startPeriod > stopPeriod) {
-            LOG.error("Не верно задан период для отчета");
-            return "";
+            throw new Exception("Не верно задан период для отчета");
         }
         List<DateTimeValue> metricsList = jsonToList(jsonArrayData);
         int metricCount = metricsList.get(0).getValueSize();
@@ -578,11 +529,6 @@ public class Graph {
 
         long xValueMin = startPeriod;
         long xValueMax = stopPeriod;
-
-        LOG.info("Формирование таблицы {} ({} - {})",
-                title,
-                sdf2.format(startPeriod),
-                sdf2.format(stopPeriod));
 
         sbGraphResult.append("<!--" + title + "-->\n" +
                 "<!-- Область таблицы -->\n" +
@@ -668,7 +614,7 @@ public class Graph {
                             "fill=\"none\" " +
                             "stroke=\"#a0a0a0\" " +
                             "stroke-width=\"" + (lineSize * 2) + "\" " +
-                            "points=\"" + xCur + "," + yStart + "  " + xCur + "," + yMax + "\"/>\n");
+                            "points=\"" + xCur + ", " + yStart + " " + xCur + "," + yMax + "\"/>\n");
                 }
                 if (graphNum == 0) {
                     sbGraphResult.append("\t<text font-size=\"")
@@ -701,10 +647,8 @@ public class Graph {
      * @return
      */
     public String getSvg() {
-        return "<svg " +
-                "width=\"" + xMax + "\" " +
-//                "height=\"" + (graphNum * (ySize + fontSize) + yMarginTop) + "\" " +
-                "height=\"" + (yStart) + "\" " +
+        return //"<svg width=\"" + xMax + "\" height=\"" + yStart + "\" " +
+                "<svg viewBox=\"0 0 " + xMax + " " + yStart + "\" " +
                 "xmlns=\"http://www.w3.org/2000/svg\" " +
                 "xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n" +
                 sbGraphResult.toString() +
@@ -726,8 +670,8 @@ public class Graph {
                 "\t</head>\n" +
                 "\t<body>\n" +
                 "\t\t\t<div class=\"graph\">\n" +
-//                "<svg viewBox=\"0 0 " + xMax + " " + (graphNum * (ySize + fontSize) + yMarginTop) + " \" class=\"chart\">\n" +
-                "<svg viewBox=\"0 0 " + xMax + " " + (yStart) + " \" class=\"chart\">\n" +
+//                "<svg viewBox=\"0 0 " + xMax + " " + yStart + "\" class=\"chart\">\n" +
+                "<svg viewBox=\"0 0 " + xMax + " " + yStart + "\">\n" +
                 sbGraphResult.toString() +
                 "\t</body>\n" +
                 "</html>";

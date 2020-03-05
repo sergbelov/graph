@@ -1,5 +1,5 @@
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+//import org.apache.logging.log4j.LogManager;
+//import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import ru.utils.files.FileUtils;
@@ -7,15 +7,13 @@ import ru.utils.graph.Graph;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
 public class App {
 
-    private static final Logger LOG = LogManager.getLogger();
+//    private static final Logger LOG = LogManager.getLogger();
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         FileUtils fileUtils = new FileUtils();
 
         String startPeriod = "2019-01-01 00:00";
@@ -26,11 +24,9 @@ public class App {
 
         String fileJson = "json/1.json";
         JSONArray jsonArrayPulse = readJSONArray(fileJson);
-        LOG.info("{}", jsonArrayPulse);
 
         fileJson = "json/2.json";
         JSONArray jsonArrayArterialPressure = readJSONArray(fileJson);
-        LOG.info("{}", jsonArrayArterialPressure);
 
 
 
@@ -40,8 +36,6 @@ public class App {
 //        graph.setColor(1, "#ff0000"); // задаем цвет фона для первого графика
         graph.setPeriod(startPeriod, stopPeriod); // задаем отчетный период
 
-
-        String graphSvg;
 
         graph.addTable(
                 jsonArrayPulse,
@@ -57,16 +51,19 @@ public class App {
                 jsonArrayPulse,
                 "pulse");
 
-        graphSvg = graph.addGraph(
+        graph.addGraph(
                 jsonArrayPulse,
                 "pulse");
-        fileUtils.writeFile("Graph1.svg", graphSvg);
 
-        graphSvg = graph.addGraph(
+        graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure");
-        fileUtils.writeFile("Graph2.svg", graphSvg);
 
+        fileUtils.writeFile("Graph1.html", graph.getSvg());
+
+
+
+        graph.clear();
 
         graph.addGraph(
                 jsonArrayPulse,
@@ -115,7 +112,7 @@ public class App {
                 jsonSB.append(new String(Arrays.copyOf(buffer, bytesRead), currEncoding));
             }
         } catch (IOException e) {
-            LOG.error("Ошибка при чтении данных из файла {}", fileName, e);
+            e.printStackTrace();
         }
 
         JSONArray jsonArray = null;
@@ -123,7 +120,7 @@ public class App {
             try {
                 jsonArray = new JSONArray(jsonSB.toString());
             } catch (JSONException e) {
-                LOG.error("Ошибка в формате данных", e);
+                e.printStackTrace();
             }
         }
         return jsonArray;

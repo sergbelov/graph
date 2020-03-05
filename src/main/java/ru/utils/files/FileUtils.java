@@ -1,7 +1,7 @@
 package ru.utils.files;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+//import org.apache.logging.log4j.LogManager;
+//import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.text.DateFormat;
@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class FileUtils {
 
-    private static final Logger LOG = LogManager.getLogger();
+//    private static final Logger LOG = LogManager.getLogger();
     private DateFormat dateFormatTimeYMDHMS = new SimpleDateFormat("yyyyMMddHHmmss");
     private String defaultEncoding = "UTF-8";
 
@@ -56,8 +56,7 @@ public class FileUtils {
                 r = writeFile(newFileName, data, encoding,  append);
 
             } else {
-//                e.printStackTrace();
-                LOG.error(e);
+                e.printStackTrace();
             }
         }
         return r;
@@ -94,7 +93,7 @@ public class FileUtils {
         try {
             Runtime.getRuntime().exec( cmd );
         } catch (IOException e) {
-            LOG.error(e);
+            e.printStackTrace();
         }
     }
 }
