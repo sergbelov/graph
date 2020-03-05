@@ -40,8 +40,8 @@ public class App {
         graph.addTable(
                 jsonArrayPulse,
                 "Гемоглобин",
-                75,
-                78);
+                75.0,
+                78.0);
 
         graph.addTable(
                 jsonArrayArterialPressure,
@@ -68,33 +68,33 @@ public class App {
         graph.addGraph(
                 jsonArrayPulse,
                 "pulse",
-                40,
-                180,
-                60,
-                90);
+                40.0,
+                180.0,
+                60.0,
+                90.0);
 
         graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
-                50,
-                200,
-                80,
-                120);
+                50.0,
+                200.0,
+                80.0,
+                120.0);
 
         graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
-                50,
-                200,
-                80,
-                120);
+                50.0,
+                200.0,
+                80.0,
+                120.0);
         graph.addGraph(
                 jsonArrayArterialPressure,
                 "ArterialPressure",
-                50,
-                200,
-                80,
-                120);
+                50.0,
+                200.0,
+                80.0,
+                120.0);
 
         fileUtils.writeFile("Graph.html", graph.getHtml());
     }

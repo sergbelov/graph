@@ -229,10 +229,10 @@ public class Graph {
     public String addGraph(
             JSONArray jsonArrayData,
             String title,
-            Number yMinConst,
-            Number yMaxConst,
-            Number yMinNorm,
-            Number yMaxNorm) throws Exception {
+            Double yMinConst,
+            Double yMaxConst,
+            Double yMinNorm,
+            Double yMaxNorm) throws Exception {
 
         if (startPeriod > stopPeriod) {
             throw new Exception("Не верно задан период для отчета");
@@ -261,10 +261,10 @@ public class Graph {
             return "";
         }
         if (yMinConst != null) {
-            yValueMin = yMinConst.doubleValue();
+            yValueMin = yMinConst;
         }
         if (yMaxConst != null) {
-            yValueMax = yMaxConst.doubleValue();
+            yValueMax = yMaxConst;
         }
 
         xValueMin = startPeriod;
@@ -342,7 +342,7 @@ public class Graph {
         // норма
         if (yMinNorm != null) {
             sbGraphResult.append("<!-- Норма Y min -->\n");
-            double y = yMax - Math.round((yMinNorm.doubleValue() - yValueMin) * yRatio);
+            double y = yMax - Math.round((yMinNorm - yValueMin) * yRatio);
             sbGraphResult.append("\t<polyline " +
                     "fill=\"none\" " +
                     "stroke=\"#000000\" " +
@@ -352,7 +352,7 @@ public class Graph {
         }
         if (yMaxNorm != null) {
             sbGraphResult.append("<!-- Норма Y max -->\n");
-            double y = yMax - Math.round((yMaxNorm.doubleValue() - yValueMin) * yRatio);
+            double y = yMax - Math.round((yMaxNorm - yValueMin) * yRatio);
             sbGraphResult.append("\t<polyline " +
                     "fill=\"none\" " +
                     "stroke=\"#000000\" " +
@@ -515,8 +515,8 @@ public class Graph {
     public String addTable(
             JSONArray jsonArrayData,
             String title,
-            Number yMinNorm,
-            Number yMaxNorm
+            Double yMinNorm,
+            Double yMaxNorm
     ) throws Exception{
         if (startPeriod > stopPeriod) {
             throw new Exception("Не верно задан период для отчета");
@@ -598,8 +598,8 @@ public class Graph {
                                     .append((yStart + fontSize * (i + 1) - fontSize / 5))
                                     .append("\"");
 
-                            if ( (yMinNorm != null && val < yMinNorm.doubleValue()) ||
-                                 (yMaxNorm != null && val > yMaxNorm.doubleValue()) ){
+                            if ( (yMinNorm != null && val < yMinNorm) ||
+                                 (yMaxNorm != null && val > yMaxNorm) ){
                                 sbGraphResult.append(" fill=\"#ff0000\"");
                             }
                             sbGraphResult.append(">")
