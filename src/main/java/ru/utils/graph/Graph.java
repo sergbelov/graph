@@ -200,6 +200,17 @@ public class Graph {
     }
 
     /**
+     * @param jsonArrayDataString список метрик
+     * @param title               название графика
+     * @return
+     */
+    public String addGraph(
+            String jsonArrayDataString,
+            String title) throws Exception {
+        JSONArray jsonArrayData = new JSONArray(jsonArrayDataString);
+        return addGraph(jsonArrayData, title);
+    }
+    /**
      * @param jsonArrayData список метрик
      * @param title         название графика
      * @return
@@ -216,6 +227,31 @@ public class Graph {
     }
 
 
+    /**
+     * Линейный график
+     * @param jsonArrayDataString список метрик
+     * @param title         название графика
+     * @param yMinConst     минимальное значение диапазона Y
+     * @param yMaxConst     макимальное значение диапазона Y
+     * @param yMinNorm      минимальное допустимое значение Y
+     * @param yMaxNorm      максимальное допустимое значение Y
+     * @return
+     */
+    public String addGraph(
+            String jsonArrayDataString,
+            String title,
+            Double yMinConst,
+            Double yMaxConst,
+            Double yMinNorm,
+            Double yMaxNorm) throws Exception {
+        JSONArray jsonArrayData = new JSONArray(jsonArrayDataString);
+        return addGraph(jsonArrayData,
+                title,
+                yMinConst,
+                yMaxConst,
+                yMinNorm,
+                yMaxNorm);
+    }
     /**
      * Линейный график
      * @param jsonArrayData список метрик
@@ -488,6 +524,19 @@ public class Graph {
 
     /**
      * Таблица
+     * @param jsonArrayDataString список метрик
+     * @param title         название
+     * @return
+     */
+    public String addTable(
+            String jsonArrayDataString,
+            String title
+    ) throws Exception {
+        JSONArray jsonArrayData = new JSONArray(jsonArrayDataString);
+        return addTable(jsonArrayData, title);
+    }
+    /**
+     * Таблица
      * @param jsonArrayData список метрик
      * @param title         название
      * @return
@@ -503,7 +552,26 @@ public class Graph {
                 null);
     }
 
-
+    /**
+     * Таблица
+     * @param jsonArrayDataString список метрик
+     * @param title         название графика
+     * @param yMinNorm      минимальное допустимое значение Y
+     * @param yMaxNorm      максимальное допустимое значение Y
+     * @return
+     */
+    public String addTable(
+            String jsonArrayDataString,
+            String title,
+            Double yMinNorm,
+            Double yMaxNorm
+    ) throws Exception{
+        JSONArray jsonArrayData = new JSONArray(jsonArrayDataString);
+        return addTable(jsonArrayData,
+                title,
+                yMinNorm,
+                yMaxNorm);
+    }
     /**
      * Таблица
      * @param jsonArrayData список метрик
