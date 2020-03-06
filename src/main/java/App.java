@@ -16,11 +16,12 @@ public class App {
     public static void main(String[] args) throws Exception {
         FileUtils fileUtils = new FileUtils();
 
-        String startPeriod = "2019-01-01 00:00";
+        String start = "2019-02-20";
+//        String startPeriod = "2019-01-01 00:00";
+        String startPeriod = "2019-02-21 00:00";
         String stopPeriod = "2019-12-31 23:59";
 //        startPeriod = "2019-06-12 00:00";
 //        stopPeriod = "2019-06-19 00:00";
-
 
         String fileJson = "json/1.json";
         JSONArray jsonArrayPulse = readJSONArray(fileJson);
@@ -34,7 +35,7 @@ public class App {
         Graph graph = new Graph();
 //        graph.setBackground("#ffffff"); // задаем цвет фона
 //        graph.setColor(1, "#ff0000"); // задаем цвет фона для первого графика
-        graph.setPeriod(startPeriod, stopPeriod); // задаем отчетный период
+        graph.setPeriod(startPeriod, stopPeriod, start); // задаем отчетный период
 
 
         graph.addTable(

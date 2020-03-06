@@ -24,14 +24,15 @@ public class Graph {
 
 //    private final long xAccuracy = 60000; // минимальный временной шаг (мс)
 //    private final long xAccuracy = 60000 * 60; // минимальный временной шаг (мс)
-    private final long xAccuracy = 1000 * 60 * 60 * 24; // минимальный временной шаг (мс)
+    private final long xAccuracy = 1000 * 60 * 60 * 24; // минимальный временной шаг 1 день (мс)
 
     private int graphNum = 0;
     private StringBuilder sbGraphResult = new StringBuilder();
     private List<String> metricsNameList = new ArrayList<>();
 
-    private long startPeriod = 0L;
-    private long stopPeriod = 0L;
+    private long start;             // начало срока
+    private long startPeriod = 0L;  // начало периода
+    private long stopPeriod = 0L;   // конец периода
     private double xScale;
 
     private final int xSize = 10000;
@@ -146,29 +147,63 @@ public class Graph {
 
 
     /**
-     * Задаем период
-     * @param startPeriodStr
-     * @param stopPeriodStr
+     * Задаем период (строковые параметры)
+     * @param startPeriodStr    // Начало периода
+     * @param stopPeriodStr     // Конец периода
+     * @throws Exception
      */
     public void setPeriod(String startPeriodStr, String stopPeriodStr) throws Exception {
+        setPeriod(startPeriodStr, stopPeriodStr, "");
+    }
+    /**
+     * Задаем период (строковые параметры)
+     * @param startPeriodStr    // Начало периода
+     * @param stopPeriodStr     // Конец периода
+     * @param startStr          // Начало срока
+     * @throws Exception
+     */
+    public void setPeriod(String startPeriodStr, String stopPeriodStr, String startStr) throws Exception {
         long startPeriod = 0L;
         long stopPeriod = 0L;
+        long start = 0L;
         if (!startPeriodStr.isEmpty()) {
             startPeriod = sdf0.parse(startPeriodStr).getTime();
         }
         if (!stopPeriodStr.isEmpty()) {
             stopPeriod = sdf0.parse(stopPeriodStr).getTime();
         }
-        setPeriod(startPeriod, stopPeriod);
+        if (!startStr.isEmpty()) {
+            start = sdf0.parse(startStr).getTime();
+        }
+        setPeriod(startPeriod, stopPeriod, start);
     }
 
     /**
-     * Задаем период
-     * @param startPeriod
-     * @param stopPeriod
+     * Задаем период (long параметры)
+     * @param startPeriod // начало периоды
+     * @param stopPeriod  // конец периода
+     * @throws Exception
      */
     public void setPeriod(long startPeriod, long stopPeriod) throws Exception {
-        if (startPeriod < stopPeriod) {
+        setPeriod(startPeriod, stopPeriod, 0L);
+    }
+    /**
+     * Задаем период (long параметры)
+     * @param startPeriod // начало периоды
+     * @param stopPeriod  // конец периода
+     * @param start       // начало срока
+     * @throws Exception
+     */
+    public void setPeriod(long startPeriod, long stopPeriod, long start) throws Exception {
+        if (startPeriod < stopPeriod && start <= startPeriod) {
+            if (start != 0L){ this.start = start;}
+            if (start > 0){ // задано начало срока, формируем недельные интервалы
+                long step = 1000*60*60*24*7; // 7 дней
+                while (start+step < startPeriod){
+                    start = start + step;
+                }
+                startPeriod = start;
+            }
             // округляем время начала периода
             this.startPeriod = sdf0.parse(sdf0.format(startPeriod)).getTime();
             // округляем время окончания периода
@@ -189,7 +224,7 @@ public class Graph {
             graphNum = 0;
             sbGraphResult.setLength(0);
         } else {
-            throw new Exception("Ошибка в датах: " + sdf2.format(this.startPeriod) + " " + sdf2.format(this.stopPeriod));
+            throw new Exception("Ошибка в датах: " + sdf2.format(startPeriod) + " " + sdf2.format(stopPeriod) + "(" + sdf2.format(start) + ")");
         }
     }
 
@@ -200,6 +235,7 @@ public class Graph {
     }
 
     /**
+     * Добавляем новый график
      * @param jsonArrayDataString список метрик
      * @param title               название графика
      * @return
@@ -211,6 +247,7 @@ public class Graph {
         return addGraph(jsonArrayData, title);
     }
     /**
+     * Добавляем новый график
      * @param jsonArrayData список метрик
      * @param title         название графика
      * @return
@@ -228,7 +265,7 @@ public class Graph {
 
 
     /**
-     * Линейный график
+     * Добавляем новый график
      * @param jsonArrayDataString список метрик
      * @param title         название графика
      * @param yMinConst     минимальное значение диапазона Y
@@ -253,7 +290,7 @@ public class Graph {
                 yMaxNorm);
     }
     /**
-     * Линейный график
+     * Добавляем новый график
      * @param jsonArrayData список метрик
      * @param title         название графика
      * @param yMinConst     минимальное значение диапазона Y
@@ -418,7 +455,9 @@ public class Graph {
 //        LOG.info("xSize:{}; xStart: {}; xScale:{}; xRatio:{}; xRatioValue:{}; xStep:{}", xSize, xStart, xScale, xRatio, xRatioValue, xStep);
         long xValueMem = 0;
         if (xStep > 0) {
+            int week = 0;
             while (xValue <= xValueMax) {
+                week++;
 //            LOG.info("xMax: {}, xCur: {}", xMax, xCur);
                 if (xCur > xStart) {
                     sbGraphResult.append("\t<polyline " +
@@ -444,6 +483,15 @@ public class Graph {
                     } else {
                         sbGraphResult.append(sdf5.format(xValue)).append("</text>\n");
                     }
+                    sbGraphResult.append("\t<text font-size=\"")
+                            .append((int) (fontSizeX * 1.35))
+                            .append("\" " +
+                                    "font-family=\"Areal\" " +
+                                    "x=\"" + (xCur + fontSize/2) + "\" " +
+                                    "y=\"" + (yMarginTop - fontSize) + "\">")
+                            .append(week)
+                            .append("</text>");
+
                 }
                 xCur = xCur + xStep;
                 xValue = xValue + (long) xRatioValue;
