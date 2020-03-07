@@ -33,7 +33,8 @@ public class Graph {
     private long start;             // начало срока
     private long startPeriod = 0L;  // начало периода
     private long stopPeriod = 0L;   // конец периода
-    private double xScale;
+    private double xScale;          // количество интервалов по X
+    private List<Long> weekList = new ArrayList<>(); // список недель
 
     private final int xSize = 10000;
     private final int ySize = (int) (xSize / 5);
@@ -55,7 +56,11 @@ public class Graph {
     private List<String> colors = new ArrayList<>();
 
 
+    /**
+     * Инициализация
+     */
     public Graph() {
+        // цвета по умолчанию
         colors.add("#009f00");
         colors.add("#00009f");
         colors.add("#9f0000");
@@ -64,6 +69,7 @@ public class Graph {
             colors.add("#009f00");
         }
 
+        // точность периода по X
         if (xAccuracy == 60000 * 60 * 24) {
             sdf0 = new SimpleDateFormat("yyyy-MM-dd");
             sdf1 = new SimpleDateFormat("dd-MM-yyyy");
@@ -195,14 +201,28 @@ public class Graph {
      * @throws Exception
      */
     public void setPeriod(long startPeriod, long stopPeriod, long start) throws Exception {
+        int xScaleW = 60;
+        weekList.clear();
         if (startPeriod < stopPeriod && start <= startPeriod) {
             if (start != 0L){ this.start = start;}
             if (start > 0){ // задано начало срока, формируем недельные интервалы
                 long step = 1000*60*60*24*7; // 7 дней
+                long startW = start;
+                for (int i = 0; i < 41; i++){
+//                    System.out.println(i+1 + " " + sdf0.format(startW));
+                    weekList.add(startW);
+                    startW = startW + step;
+                }
+                if (startPeriod == start && stopPeriod == weekList.get(40)) {
+                    xScaleW = 40;
+                }
+/*
                 while (start+step < startPeriod){
                     start = start + step;
                 }
                 startPeriod = start;
+*/
+//                System.out.println("2019-02-20" + " " +getNumWeek(sdf0.parse("2019-02-20").getTime()));
             }
             // округляем время начала периода
             this.startPeriod = sdf0.parse(sdf0.format(startPeriod)).getTime();
@@ -212,6 +232,7 @@ public class Graph {
             while (true) {
                 long xValueRange = this.stopPeriod - this.startPeriod;
                 xScale = Math.min(maxStepInX, xValueRange);
+                xScale = Math.min(xScale, xScaleW);
                 while (xScale > 1 && (xValueRange / xScale) % xAccuracy != 0) {
                     xScale--;
                 }
@@ -228,6 +249,23 @@ public class Graph {
         }
     }
 
+    /**
+     * Номер недели
+     * @param date
+     * @return
+     */
+    private int getNumWeek(long date){
+        for (int i = 0; i < weekList.size(); i++){
+            if (weekList.get(i) > date){
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Очистка графиков и таблиц
+     */
     public void clear(){
         graphNum = 0;
         yStart = yMarginTop;
@@ -455,9 +493,8 @@ public class Graph {
 //        LOG.info("xSize:{}; xStart: {}; xScale:{}; xRatio:{}; xRatioValue:{}; xStep:{}", xSize, xStart, xScale, xRatio, xRatioValue, xStep);
         long xValueMem = 0;
         if (xStep > 0) {
-            int week = 0;
+            int weekPrev = 0;
             while (xValue <= xValueMax) {
-                week++;
 //            LOG.info("xMax: {}, xCur: {}", xMax, xCur);
                 if (xCur > xStart) {
                     sbGraphResult.append("\t<polyline " +
@@ -483,15 +520,19 @@ public class Graph {
                     } else {
                         sbGraphResult.append(sdf5.format(xValue)).append("</text>\n");
                     }
-                    sbGraphResult.append("\t<text font-size=\"")
-                            .append((int) (fontSizeX * 1.35))
-                            .append("\" " +
-                                    "font-family=\"Areal\" " +
-                                    "x=\"" + (xCur + fontSize/2) + "\" " +
-                                    "y=\"" + (yMarginTop - fontSize) + "\">")
-                            .append(week)
-                            .append("</text>");
-
+                    int week = getNumWeek(xValue);
+                    if (week > weekPrev) {
+                        sbGraphResult.append("\t<text font-size=\"")
+                                .append((int) (fontSizeX * 1.35))
+                                .append("\" " +
+                                        "font-family=\"Areal\" font-weight=\"bold\"" +
+//                                        "x=\"" + (xCur + fontSize / 2) + "\" " +
+                                        "x=\"" + (xCur) + "\" " +
+                                        "y=\"" + (yMarginTop - fontSize) + "\">")
+                                .append(week)
+                                .append("</text>");
+                        weekPrev = week;
+                    }
                 }
                 xCur = xCur + xStep;
                 xValue = xValue + (long) xRatioValue;
@@ -691,6 +732,7 @@ public class Graph {
         long xValue = xValueMin;
         long xValuePrev = xValue;
         long xValueMem = 0;
+        int weekPrev = 0;
         if (xStep > 0) {
             while (xValue <= xValueMax) {
                 if (xValue != xValuePrev) {
@@ -746,6 +788,19 @@ public class Graph {
                         xValueMem = xValue;
                     } else {
                         sbGraphResult.append(sdf5.format(xValue)).append("</text>\n");
+                    }
+                    int week = getNumWeek(xValue);
+                    if (week > weekPrev) {
+                        sbGraphResult.append("\t<text font-size=\"")
+                                .append((int) (fontSizeX * 1.35))
+                                .append("\" " +
+                                        "font-family=\"Areal\" font-weight=\"bold\"" +
+//                                        "x=\"" + (xCur + fontSize / 2) + "\" " +
+                                        "x=\"" + (xCur) + "\" " +
+                                        "y=\"" + (yMarginTop - fontSize) + "\">")
+                                .append(week)
+                                .append("</text>");
+                        weekPrev = week;
                     }
                 }
                 xCur = xCur + xStep;

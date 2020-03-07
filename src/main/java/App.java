@@ -20,6 +20,13 @@ public class App {
 //        String startPeriod = "2019-01-01 00:00";
         String startPeriod = "2019-02-21 00:00";
         String stopPeriod = "2019-12-31 23:59";
+
+        startPeriod = "2019-02-20 00:00";
+        stopPeriod = "2019-11-27 00:00";
+
+        startPeriod = "2019-02-20 00:00";
+        stopPeriod = "2019-04-09 00:00";
+
 //        startPeriod = "2019-06-12 00:00";
 //        stopPeriod = "2019-06-19 00:00";
 
@@ -64,7 +71,7 @@ public class App {
 
 
 
-        graph.clear();
+//        graph.clear();
 
         graph.addGraph(
                 jsonArrayPulse,
