@@ -42,6 +42,7 @@ public class App {
         Graph graph = new Graph();
 //        graph.setBackground("#ffffff"); // задаем цвет фона
 //        graph.setColor(1, "#ff0000"); // задаем цвет фона для первого графика
+//        graph.setPeriod(startPeriod, stopPeriod, ""); // задаем отчетный период
         graph.setPeriod(startPeriod, stopPeriod, start); // задаем отчетный период
 
 
