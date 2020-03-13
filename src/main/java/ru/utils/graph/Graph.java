@@ -14,8 +14,8 @@ import java.util.List;
 public class Graph {
     private final NumberFormat decimalFormat = NumberFormat.getInstance();
     private final DateFormat datetimeFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-    private DateFormat sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-    private DateFormat sdf1 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+    private DateFormat sdf0 = new SimpleDateFormat("yyyy-MM-dd");
+    private DateFormat sdf1 = new SimpleDateFormat("dd-MM-yyyy");
     private final DateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private final DateFormat sdf3 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
     private final DateFormat sdf4 = new SimpleDateFormat("HH:mm:ss");
@@ -24,7 +24,7 @@ public class Graph {
 
 //    private final long xAccuracy = 60000; // минимальный временной шаг (мс)
 //    private final long xAccuracy = 60000 * 60; // минимальный временной шаг (мс)
-    private final long xAccuracy = 1000 * 60 * 60 * 24; // минимальный временной шаг 1 день (мс)
+    private long xAccuracy; // минимальный временной шаг 1 день (мс)
 
     private int graphNum = 0;
     private StringBuilder sbGraphResult = new StringBuilder();
@@ -69,6 +69,7 @@ public class Graph {
             colors.add("#009f00");
         }
 
+/*
         // точность периода по X
         if (xAccuracy == 60000 * 60 * 24) {
             sdf0 = new SimpleDateFormat("yyyy-MM-dd");
@@ -80,6 +81,7 @@ public class Graph {
             sdf0 = new SimpleDateFormat("yyyy-MM-dd HH:mm");
             sdf1 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
         }
+*/
     }
 
     /**
@@ -201,20 +203,32 @@ public class Graph {
      * @throws Exception
      */
     public void setPeriod(long startPeriod, long stopPeriod, long start) throws Exception {
+        boolean setStartPeriod = false;
+        boolean setStopPeriod = false;
         int xScaleW = 60;
         weekList.clear();
-        if (startPeriod < stopPeriod && start <= startPeriod) {
+        if (startPeriod > 0 && startPeriod < stopPeriod && start <= startPeriod) {
             if (start != 0L){ this.start = start;}
             if (start > 0){ // задано начало срока, формируем недельные интервалы
                 long step = 1000*60*60*24*7; // 7 дней
+                xAccuracy = step;
                 long startW = start;
                 for (int i = 0; i < 41; i++){
 //                    System.out.println(i+1 + " " + sdf0.format(startW));
                     weekList.add(startW);
+                    if (!setStartPeriod && (startW + step) > startPeriod){
+                        startPeriod = startW;
+                        setStartPeriod = true;
+                    }
                     startW = startW + step;
+                    if (!setStopPeriod &&  startW > stopPeriod){
+                        stopPeriod = startW;
+                        setStopPeriod = true;
+                    }
                 }
-                if (startPeriod == start && stopPeriod == weekList.get(40)) {
-                    xScaleW = 40;
+//                if (startPeriod == start && stopPeriod == weekList.get(40)) {
+                if (start > 0) {
+                    xScaleW = (int) ((stopPeriod - startPeriod) / step);
                 }
 /*
                 while (start+step < startPeriod){
@@ -223,17 +237,24 @@ public class Graph {
                 startPeriod = start;
 */
 //                System.out.println("2019-02-20" + " " +getNumWeek(sdf0.parse("2019-02-20").getTime()));
+            } else {
+                xAccuracy = 1000 * 60 * 60 * 24; // минимальный временной шаг 1 день (мс)
             }
             // округляем время начала периода
-            this.startPeriod = sdf0.parse(sdf0.format(startPeriod)).getTime();
-            // округляем время окончания периода
-            this.stopPeriod = (long) (Math.ceil((stopPeriod + xAccuracy) / xAccuracy * 1.00) * xAccuracy);
-            this.stopPeriod = sdf0.parse(sdf0.format(this.stopPeriod)).getTime();
+            if (start == 0) {
+                this.startPeriod = sdf0.parse(sdf0.format(startPeriod)).getTime();
+                // округляем время окончания периода
+                this.stopPeriod = (long) (Math.ceil((stopPeriod + xAccuracy) / xAccuracy * 1.00) * xAccuracy);
+                this.stopPeriod = sdf0.parse(sdf0.format(this.stopPeriod)).getTime();
+            } else {
+                this.startPeriod = startPeriod;
+                this.stopPeriod = stopPeriod;
+            }
             while (true) {
                 long xValueRange = this.stopPeriod - this.startPeriod;
                 xScale = Math.min(maxStepInX, xValueRange);
                 xScale = Math.min(xScale, xScaleW);
-                while (xScale > 1 && (xValueRange / xScale) % xAccuracy != 0) {
+                while (xScale > 0 && (xValueRange / xScale) % xAccuracy != 0) {
                     xScale--;
                 }
                 if (xScale == xValueRange / xAccuracy || xScale > 20) {
@@ -526,8 +547,7 @@ public class Graph {
                                 .append((int) (fontSizeX * 1.35))
                                 .append("\" " +
                                         "font-family=\"Areal\" font-weight=\"bold\"" +
-//                                        "x=\"" + (xCur + fontSize / 2) + "\" " +
-                                        "x=\"" + (xCur) + "\" " +
+                                        "x=\"" + (xCur + fontSize) + "\" " +
                                         "y=\"" + (yMarginTop - fontSize) + "\">")
                                 .append(week)
                                 .append("</text>");
@@ -795,8 +815,7 @@ public class Graph {
                                 .append((int) (fontSizeX * 1.35))
                                 .append("\" " +
                                         "font-family=\"Areal\" font-weight=\"bold\"" +
-//                                        "x=\"" + (xCur + fontSize / 2) + "\" " +
-                                        "x=\"" + (xCur) + "\" " +
+                                        "x=\"" + (xCur + fontSize) + "\" " +
                                         "y=\"" + (yMarginTop - fontSize) + "\">")
                                 .append(week)
                                 .append("</text>");
